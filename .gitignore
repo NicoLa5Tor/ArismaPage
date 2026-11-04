@@ -1,0 +1,21 @@
+﻿# Local and generated data
+.codebase-memory/
+.tmp-product-refs/
+.claude/
+
+# Keep only the root README and project README files
+*.md
+!README.md
+!**/README.md
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+.next/
+target/
+.quarkus/
+*.tsbuildinfo

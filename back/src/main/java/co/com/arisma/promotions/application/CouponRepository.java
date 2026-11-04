@@ -1,0 +1,15 @@
+package co.com.arisma.promotions.application;
+import co.com.arisma.promotions.domain.Coupon;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Coupon persistence. Read models include real usage counted over paid orders. */
+public interface CouponRepository {
+    List<Map<String, Object>> list();
+    Optional<Map<String, Object>> find(UUID id);
+    void insert(Coupon coupon);
+    /** Returns false when the coupon does not exist. */
+    boolean update(Coupon coupon);
+}

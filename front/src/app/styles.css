@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "./glass.css";
+
+@layer base {
+  html, body { @apply min-h-full; font-family: var(--font-geist-sans), sans-serif; }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+}
+
+@layer components {
+  .skip-link { @apply absolute z-10 -top-20 left-4 bg-white px-4 py-2 text-neutral-900 focus:top-4 focus:outline-2 focus:outline-offset-2 focus:outline-red-700; }
+  .home { @apply flex min-h-screen flex-col items-start gap-4 bg-stone-100 px-8 py-16 text-neutral-900; }
+  .home h1 { @apply text-4xl font-semibold; }
+  .home a { @apply rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white no-underline transition-colors duration-300 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700; }
+}

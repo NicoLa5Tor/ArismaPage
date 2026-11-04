@@ -1,0 +1,30 @@
+services:
+  objectstore:
+    image: cgr.dev/chainguard/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${ARISMA_S3_ACCESS_KEY:?Set ARISMA_S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${ARISMA_S3_SECRET_KEY:?Set ARISMA_S3_SECRET_KEY}
+    ports:
+      - "127.0.0.1:19010:9000"
+      - "127.0.0.1:19011:9001"
+    volumes:
+      - arisma_quarkus_media:/data
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: arisma_quarkus
+      POSTGRES_USER: arisma
+      POSTGRES_PASSWORD: ${ARISMA_DB_PASSWORD:?Set ARISMA_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - arisma_quarkus_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arisma -d arisma_quarkus"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  arisma_quarkus_data:
+  arisma_quarkus_media:
