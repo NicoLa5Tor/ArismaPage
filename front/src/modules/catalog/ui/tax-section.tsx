@@ -30,7 +30,7 @@ export function TaxSection() {
   const edit = (r: TaxRate) => { setError(""); setForm({ id: r.id, code: r.code, name: r.name, percent: String(r.percent), active: r.active }) }
   return <div className="glass-scroll"><div className="glass-split">
     <Card icon={Percent} title="Tasas de impuesto" subtitle="Los precios se guardan sin IVA; el cliente ve el precio con la tasa del producto">
-      <div className="mt-4"><Async state={rates} label="Cargando tasas">{d => <DataTable caption="Tasas de impuesto" rows={d} columns={columns} onOpen={edit} />}</Async></div>
+      <div className="mt-4"><Async state={rates} label="Cargando tasas" empty={{ icon: Percent, title: "No hay tasas registradas", hint: "Crea una tasa para asignarla a tus productos.", when: d => d.length === 0 }}>{d => <DataTable caption="Tasas de impuesto" rows={d} columns={columns} onOpen={edit} />}</Async></div>
     </Card>
     <Card icon={Plus} title={form.id ? "Editar tasa" : "Nueva tasa"} subtitle="Una tasa en uso no puede cambiar de porcentaje: crea otra y reasigna los productos">
       {error && <p role="alert" className="glass-alert">{error}</p>}

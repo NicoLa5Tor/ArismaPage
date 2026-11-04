@@ -94,7 +94,6 @@ export function AdminShell({ section, onSectionChange, onLogout, aside, children
         {children}
       </div></main>
       <aside className="glass-right" aria-label="Pendientes de la tienda">{aside}</aside>
-      <div className="glass-grabber" aria-hidden="true"><span /><i /><span /></div>
     </div>
   </div>
 }

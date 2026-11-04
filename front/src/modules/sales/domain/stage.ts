@@ -23,25 +23,25 @@ const hold: Step = { id: "hold", label: "Poner en espera", action: order("on_hol
  */
 export function flow(c: FlowContext): { primary: Step | null; secondary: Step[] } {
   const pickup = c.deliveryMethod === "pickup"
-  const deliver: Step = { id: "deliver", label: pickup ? "Entregar al cliente" : "Marcar entregado", action: delivery("delivered"), form: true }
+  const deliver: Step = { id: "deliver", label: "Entregar", action: delivery("delivered"), form: true }
   switch (c.stage) {
     case "unpaid": return { primary: { id: "pay", label: "Confirmar pago", action: order("processing") }, secondary: [hold, cancel] }
-    case "to_prepare": return { primary: { id: "pack", label: pickup ? "Listo para recoger" : "Marcar empacado", action: delivery("packed") }, secondary: [{ ...deliver, id: "deliver-now", label: "Ya se entregó" }, hold, cancel] }
+    case "to_prepare": return { primary: { id: "pack", label: "Empacar", action: delivery("packed") }, secondary: [{ ...deliver, id: "deliver-now", label: "Ya se entregó" }, hold, cancel] }
     case "packed": return pickup
       ? { primary: deliver, secondary: [{ id: "unpack", label: "Volver a por preparar", action: delivery("pending") }, cancel] }
       : { primary: { id: "ship", label: c.deliveryMethod === "courier" ? "Salió con el mensajero" : "Enviar con guía", action: delivery("shipped"), form: true }, secondary: [{ id: "unpack", label: "Volver a por preparar", action: delivery("pending") }, cancel] }
     case "shipped": return { primary: deliver, secondary: [{ id: "fail", label: "No se entregó", action: delivery("failed"), form: true, tone: "danger" }] }
     case "issue":
       if (c.deliveryStatus === "failed") return { primary: { id: "retry", label: "Reintentar envío", action: delivery("shipped"), form: true }, secondary: [{ id: "returned", label: "Lo devolvieron", action: delivery("returned"), confirm: "El envío queda como devuelto; decide luego si cancelas o reembolsas el pedido." }, cancel] }
-      if (c.orderStatus === "on_hold") return { primary: { id: "resume", label: "Reanudar pedido", action: order("processing") }, secondary: [cancel] }
-      return { primary: null, secondary: c.orderStatus === "processing" ? [{ id: "refund", label: "Marcar reembolsado", action: order("refunded"), tone: "danger", confirm: "El pedido queda reembolsado; las unidades descontadas vuelven al inventario." }, cancel] : [cancel] }
-    case "delivered": return { primary: null, secondary: c.orderStatus === "completed" ? [{ id: "refund", label: "Marcar reembolsado", action: order("refunded"), tone: "danger", confirm: "El pedido queda reembolsado; las unidades descontadas vuelven al inventario." }] : [] }
+      if (c.orderStatus === "on_hold") return { primary: { id: "resume", label: "Reanudar", action: order("processing") }, secondary: [cancel] }
+      return { primary: null, secondary: c.orderStatus === "processing" ? [{ id: "refund", label: "Reembolsar", action: order("refunded"), tone: "danger", confirm: "El pedido queda reembolsado; las unidades descontadas vuelven al inventario." }, cancel] : [cancel] }
+    case "delivered": return { primary: null, secondary: c.orderStatus === "completed" ? [{ id: "refund", label: "Reembolsar", action: order("refunded"), tone: "danger", confirm: "El pedido queda reembolsado; las unidades descontadas vuelven al inventario." }] : [] }
     default: return { primary: null, secondary: [] }
   }
 }
 /** Steps that can be applied to many orders at once without asking for data. */
 export const BULK_STEPS: Partial<Record<OrderStage, Step>> = {
-  to_prepare: { id: "pack", label: "Marcar empacados", action: delivery("packed") },
-  packed: { id: "deliver", label: "Marcar entregados", action: delivery("delivered") },
-  shipped: { id: "deliver", label: "Marcar entregados", action: delivery("delivered") },
+  to_prepare: { id: "pack", label: "Empacar", action: delivery("packed") },
+  packed: { id: "deliver", label: "Entregar", action: delivery("delivered") },
+  shipped: { id: "deliver", label: "Entregar", action: delivery("delivered") },
 }

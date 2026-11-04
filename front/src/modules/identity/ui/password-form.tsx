@@ -17,13 +17,15 @@ export function PasswordForm({ email, submitLabel, onSubmit, currentLabel = "Con
     try { await onSubmit(current, next) } catch (err) { setError(err instanceof Error ? err.message : "No se pudo cambiar la contraseña") } finally { setBusy(false) }
   }
   const type = show ? "text" : "password"
-  return <form onSubmit={submit} className="grid gap-4" noValidate>
+  return <form onSubmit={submit} className="password-form" noValidate>
+    <div className="password-form-content">
     {error && <p role="alert" className="glass-alert">{error}</p>}
-    <label className="glass-label">{currentLabel}<input className="glass-field" type={type} autoComplete="current-password" value={current} aria-invalid={tried && !current} onChange={e => setCurrent(e.target.value)} /></label>
+    <div className="password-form-fields"><label className="glass-label">{currentLabel}<input className="glass-field" type={type} autoComplete="current-password" value={current} aria-invalid={tried && !current} onChange={e => setCurrent(e.target.value)} /></label>
     <label className="glass-label">Nueva contraseña<input className="glass-field" type={type} autoComplete="new-password" value={next} onChange={e => setNext(e.target.value)} placeholder="Una frase que recuerdes, ej. tablero verde en la tienda" /></label>
     <label className="glass-label">Repite la nueva contraseña<input className="glass-field" type={type} autoComplete="new-password" value={confirm} aria-invalid={tried && next !== confirm} onChange={e => setConfirm(e.target.value)} /></label>
-    <ul className="glass-checklist" aria-label="Requisitos de la contraseña">{rules.map(r => <li key={r.text} data-ok={r.ok || undefined}>{r.ok ? <Check size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}{r.text}<span className="sr-only">{r.ok ? ": cumplido" : ": pendiente"}</span></li>)}</ul>
+    </div><div className="password-form-rules"><ul className="glass-checklist" aria-label="Requisitos de la contraseña">{rules.map(r => <li key={r.text} data-ok={r.ok || undefined}>{r.ok ? <Check size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}{r.text}<span className="sr-only">{r.ok ? ": cumplido" : ": pendiente"}</span></li>)}</ul>
     <label className="glass-check py-2"><input type="checkbox" checked={show} onChange={e => setShow(e.target.checked)} />Mostrar contraseñas</label>
-    <button className="glass-cta" disabled={busy}>{busy ? "Guardando…" : submitLabel}</button>
+    </div></div>
+    <div className="password-form-footer"><button className="glass-cta" disabled={busy}>{busy ? "Guardando…" : submitLabel}</button></div>
   </form>
 }

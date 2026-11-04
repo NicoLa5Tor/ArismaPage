@@ -2,9 +2,8 @@ import type { Category, Product, ProductImage, ProductStatus, TaxRate } from "..
 
 export type ProductChange = Omit<Product, "id" | "taxPercent" | "regularPriceWithTax" | "salePriceWithTax" | "saleActive" | "unitsSold" | "imageId" | "imageUrl"> & { stockReason: string }
 export type TaxRateChange = Omit<TaxRate, "id" | "products">
-export const PRODUCT_PAGE = 12
 export interface CatalogPort {
-  listProducts(query: string, offset: number, status: ProductStatus | ""): Promise<Product[]>
+  listProducts(query: string, offset: number, status: ProductStatus | "", limit: number): Promise<Product[]>
   saveProduct(id: string | null, product: ProductChange, csrf: string): Promise<Product>
   listCategories(): Promise<Category[]>
   saveCategory(category: Category, csrf: string): Promise<void>

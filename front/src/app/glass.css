@@ -3,7 +3,7 @@
 .glass-env{position:fixed;inset:-40px;z-index:-1;pointer-events:none}
 .glass-env-photo{position:absolute;inset:0;background:url('/arisma-arcobot-fondo.png') center/cover no-repeat}
 .glass-env-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,24,30,.24),rgba(20,24,30,.4))}
-.glass-space{--side-w:220px;--right-w:300px;position:relative;width:calc(100vw - 32px);max-width:1920px;height:calc(100dvh - 24px);padding:12px 20px 0;display:grid;grid-template-columns:var(--side-w) minmax(0,1fr) var(--right-w);grid-template-rows:minmax(0,1fr) 24px;grid-template-areas:'side main right' '. grab .';row-gap:12px;perspective:1700px;perspective-origin:50% 42%;transition:grid-template-columns .8s var(--ease)}
+.glass-space{--side-w:220px;--right-w:300px;position:relative;width:calc(100vw - 32px);max-width:1920px;height:calc(100dvh - 16px);padding:0 20px;display:grid;grid-template-columns:var(--side-w) minmax(0,1fr) var(--right-w);grid-template-rows:minmax(0,1fr);grid-template-areas:'side main right';perspective:1700px;perspective-origin:50% 42%;transition:grid-template-columns .8s var(--ease)}
 .glass-space.glass-no-side{--side-w:0px}.glass-space.glass-no-right{--right-w:0px}
 .glass-space>*{transition:transform .8s var(--ease),opacity .4s var(--ease)}
 .glass-window{position:relative;isolation:isolate;color:#fff;border-radius:40px}
@@ -19,7 +19,6 @@
 .glass-status-breakdown{display:grid;gap:8px;margin-top:18px;font-size:12px;color:rgba(255,255,255,.85)}.glass-status-breakdown>div{display:grid;grid-template-columns:76px 1fr 20px;align-items:center;gap:8px}.glass-status-breakdown i{height:6px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.2)}.glass-status-breakdown b{display:block;height:100%;border-radius:inherit;background:rgba(255,255,255,.85)}
 .glass-product-scene{height:88px;margin-top:16px;border-radius:18px;background:url('/arisma-arcobot-fondo.png') 95% 38%/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
 .glass-catalog label.relative .glass-field{padding-left:48px}
-.glass-grabber{grid-area:grab;justify-self:center;display:flex;align-items:center;gap:12px}.glass-grabber span,.glass-grabber i{display:block;background:rgba(255,255,255,.55);border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.18)}.glass-grabber span{width:13px;height:13px}.glass-grabber i{width:150px;height:11px}
 .glass-card{border-radius:28px;background:linear-gradient(150deg,rgba(255,255,255,.16),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.27),inset 0 0 0 1px rgba(255,255,255,.1),0 18px 40px -30px rgba(0,0,0,.5);padding:20px;color:#fff}.glass-catalog{display:flex;flex-direction:column;flex:1;min-height:0}.glass-main-inner>div:has(>.glass-catalog){min-height:0;flex:1}.glass-icon-tile,.glass-product-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.12);color:#fff}.glass-product-icon{background:rgba(0,0,0,.12)}
 .glass-field,.glass-login-form input{width:100%;min-width:0;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(0,0,0,.16);padding:12px 14px;color:#fff;font-size:14px;outline:none}.glass-field::placeholder,.glass-login-form input::placeholder{color:rgba(255,255,255,.5)}.glass-field:focus-visible,.glass-login-form input:focus-visible{outline:2px solid rgba(255,255,255,.85);outline-offset:2px}.glass-field option{background:#39332e;color:#fff}.glass-label,.glass-login-form label{display:grid;gap:8px;color:rgba(255,255,255,.86);font-size:14px;font-weight:500}
 .glass-cta,.glass-chip{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:10px 20px;color:#fff;font-size:14px;font-weight:600;transition:filter .25s,transform .35s var(--ease)}.glass-cta{background:linear-gradient(180deg,#6aa6ff,#3b7ef0);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 10px 24px -10px rgba(59,126,240,.9)}.glass-chip{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}.glass-cta:hover,.glass-chip:hover{filter:brightness(1.12)}.glass-cta:disabled,.glass-chip:disabled{opacity:.45;cursor:not-allowed}
@@ -42,7 +41,7 @@
 .glass-scrim{position:fixed;inset:0;z-index:30;background:rgba(10,14,20,.55);opacity:0;pointer-events:none;transition:opacity .35s var(--ease)}.glass-scrim[data-open=true]{opacity:1;pointer-events:auto}
 .glass-main,.glass-no-side .glass-main{flex:none;border-radius:28px}.glass-main-inner{height:auto;overflow:visible;padding:16px}
 .glass-scroll{overflow:visible;padding-right:0}.glass-catalog ul{max-height:none;overflow:visible}
-.glass-right{width:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.glass-no-right .glass-right{display:none}.glass-widget-blue{min-height:160px}.glass-grabber{display:none}.glass-page-head h1{font-size:28px}}
+.glass-right{width:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.glass-no-right .glass-right{display:none}.glass-widget-blue{min-height:160px}.glass-page-head h1{font-size:28px}}
 @media(max-width:560px){.glass-stage .glass-space{padding:8px;gap:8px}.glass-page-head{gap:12px}.glass-page-head .glass-avatar{display:none}.glass-main-inner{padding:16px}.glass-page-head{align-items:flex-start}.glass-page-head h1{font-size:26px}.glass-page-head p{font-size:13px}.glass-tools{gap:4px}.glass-round{width:36px;height:36px}.glass-avatar{width:36px;height:36px}.glass-card{padding:14px}.glass-login{padding:24px}.glass-login h1{font-size:30px}.glass-login-brand{margin-bottom:24px}.glass-dialog{width:100%;max-height:100dvh;border-radius:24px}.glass-dialog-head,.glass-dialog-body{padding:18px}}
 @media(prefers-reduced-motion:reduce){.glass-stage *, .glass-stage *::before, .glass-stage *::after, .glass-login-stage *, .glass-dialog *{animation:none!important;transition:none!important}.glass-space>*{transform:none!important}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.glass-window::before{background:rgba(45,40,36,.96)}.glass-widget-blue::before{background:rgba(49,91,130,.97)}}
@@ -192,3 +191,341 @@
 .glass-board-column[data-stage=issue]{background:rgba(150,40,40,.16)}
 .glass-dispatch-card[data-clickable]{cursor:pointer}
 .glass-table .glass-flow{flex-wrap:nowrap}.glass-flow .glass-chip,.glass-flow .glass-cta{white-space:nowrap}
+
+
+/* Orders workspace */
+.glass-orders-card{background:rgba(31,39,52,.94);border:1px solid rgba(225,238,255,.18);box-shadow:0 22px 50px -32px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.12)}
+.orders-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}
+.orders-overview>div{display:grid;gap:4px;min-width:0;padding:16px;border:1px solid rgba(255,255,255,.11);border-radius:18px;background:rgba(255,255,255,.07)}
+.orders-overview span{font-size:12px;color:rgba(234,242,255,.75)}
+.orders-overview strong{font-size:24px;line-height:1.15;font-weight:600;font-variant-numeric:tabular-nums}
+.orders-overview small{font-size:12px;color:rgba(234,242,255,.6)}
+.orders-overview>div:last-child strong{color:#ffd1ad}
+.orders-controls{padding:16px;border:1px solid rgba(255,255,255,.09);border-radius:20px;background:rgba(10,17,28,.25)}
+.glass-orders .glass-preset{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08)}
+.glass-orders .glass-preset[aria-pressed=true]{background:#436fbd;border-color:#8cb6ff;color:white}
+.glass-orders .glass-table-wrap{border:1px solid rgba(255,255,255,.1);background:rgba(13,20,31,.35)}
+.glass-orders .glass-table th{background:#263343;color:#c0cddd}
+.glass-orders .glass-table td{border-top:1px solid rgba(255,255,255,.06);padding:14px 12px}
+.glass-orders .glass-board{gap:12px;padding:4px 4px 16px}
+.glass-orders .glass-board-column{gap:14px;padding:16px;background:rgba(13,20,31,.48);border:1px solid rgba(211,229,255,.12)}
+.glass-orders .glass-board-column header{min-height:56px}
+.glass-orders .glass-board-column header h3{justify-content:space-between;color:#f4f8ff}
+.glass-orders .glass-board-column header p{line-height:1.4;color:#b2c0d2}
+.glass-orders .glass-board-column[data-stage=issue]{background:rgba(93,43,43,.48);border-color:rgba(255,165,146,.26)}
+.glass-orders .glass-dispatch-card{gap:12px;padding:14px;background:#384759;border:1px solid rgba(222,236,255,.13);box-shadow:0 8px 18px -14px rgba(0,0,0,.9)}
+.glass-orders .glass-dispatch-card:hover{background:#42546a;border-color:rgba(222,236,255,.3)}
+.glass-orders .glass-dispatch-card .glass-flow{flex:1}
+.glass-orders .glass-dispatch-card .glass-chip-primary{background:#5489e5}
+.orders-detail-stats .glass-stat{background:rgba(118,155,198,.14);border:1px solid rgba(213,232,255,.12)}
+.orders-detail-panels .glass-panel{background:rgba(118,155,198,.1);border:1px solid rgba(213,232,255,.12)}
+@media(max-width:640px){.orders-overview{gap:8px}.orders-overview>div{padding:12px;gap:4px}.orders-overview strong{font-size:20px}.orders-overview small{display:none}.orders-controls{padding:12px}.glass-orders .glass-board-column{padding:12px}.glass-orders .glass-table-wrap:has(.glass-table-responsive){border:0;background:none}}
+
+.glass-flow .glass-flow-primary{display:inline-flex;align-items:center;justify-content:center;width:132px;min-height:36px;flex:none;text-align:center}
+
+/* Keep navigation reachable while long lists scroll within their available space. */
+.glass-catalog .glass-product-list{align-content:start;flex:1 1 auto;min-height:160px;max-height:clamp(220px,48dvh,720px);overflow-y:auto;overscroll-behavior:contain}
+.glass-orders .glass-table-wrap{max-height:clamp(220px,44dvh,680px);overflow:auto;overscroll-behavior:contain}
+@media(max-width:767px){.glass-orders .glass-table-wrap:has(.glass-table-responsive){max-height:clamp(240px,50dvh,600px);overflow-y:auto}}
+
+/* Compact order controls keep the work area in view. */
+.glass-orders-card{padding:16px}
+.orders-overview{margin-top:12px;gap:8px}
+.orders-overview>div{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px}
+.orders-overview strong{font-size:20px;order:-1}
+.orders-overview small{display:none}
+.orders-controls{margin-top:12px;gap:8px;padding:10px 12px;border-radius:16px}
+.orders-notice{border-radius:12px;background:rgba(112,155,215,.17);font-size:13px}
+.orders-notice summary{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;list-style:none}
+.orders-notice summary::-webkit-details-marker{display:none}
+.orders-notice summary svg{flex:none;color:#b5d3ff}
+.orders-notice-link{margin-left:auto;white-space:nowrap;color:#c2dcff;text-decoration:underline;text-underline-offset:3px}
+.orders-notice-content{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:0 12px 12px;color:rgba(255,255,255,.82)}
+.orders-notice-content p{flex:1 1 280px;line-height:1.4}
+.glass-orders .glass-table td{padding:10px 12px}
+@media(max-width:640px){.orders-overview>div{align-items:flex-start;flex-direction:column;gap:2px}.orders-overview span{line-height:1.2}.orders-controls{padding:8px}.orders-notice summary{align-items:flex-start}}
+
+/* Order filters */
+.glass-orders .orders-filter-row{display:grid;grid-template-columns:minmax(200px,1fr) minmax(280px,340px);align-items:end;gap:12px}
+.orders-search{min-width:0;display:grid;gap:4px}
+.orders-filter-label{font-size:12px;font-weight:600;color:rgba(225,236,250,.72)}
+.glass-orders .orders-search .glass-field{width:100%;height:40px;padding:8px 40px 8px 44px}
+.glass-orders .glass-dates{width:auto;gap:8px}
+.glass-orders .glass-dates .glass-field{height:40px;width:100%;min-width:0}
+.orders-filter-stages{display:flex;align-items:center;gap:12px;min-width:0;padding-top:4px}
+.orders-filter-stages>.orders-filter-label{flex:none}
+.glass-orders .orders-filter-stages .glass-presets{flex:1;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding:2px 2px 6px;margin:0}
+.glass-orders .orders-filter-stages .glass-presets::-webkit-scrollbar{display:block;height:6px}
+.glass-orders .glass-preset{flex:none;padding:6px 12px}
+@media(max-width:700px){.glass-orders .orders-filter-row{grid-template-columns:minmax(0,1fr)}.glass-orders .glass-dates{width:100%}.orders-filter-stages{align-items:flex-start;flex-direction:column;gap:4px}.glass-orders .orders-filter-stages .glass-presets{width:100%;flex:auto}}
+
+.glass-orders .orders-filter-row{grid-template-columns:minmax(200px,1fr) minmax(150px,200px) minmax(260px,340px)}
+.orders-select-label{display:grid;gap:4px;min-width:0}
+.glass-orders .orders-select{height:40px;width:100%;min-width:0;cursor:pointer;color:#fff;background-color:#344253}
+.glass-orders .orders-select option{color:#fff;background:#263343}
+@media(max-width:1000px){.glass-orders .orders-filter-row{grid-template-columns:minmax(0,1fr) minmax(140px,200px)}.glass-orders .glass-dates{grid-column:1/-1}}
+@media(max-width:560px){.glass-orders .orders-filter-row{grid-template-columns:minmax(0,1fr)}.glass-orders .glass-dates{grid-column:auto}}
+
+/* Shared tables: keep the header and page controls close to the visible rows. */
+.glass-main .glass-table-wrap{max-height:clamp(200px,42dvh,600px);overflow:auto;overscroll-behavior:contain}
+.glass-main .glass-table-wrap:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.glass-main .glass-table th{z-index:2}
+@media(max-width:640px){.glass-main .glass-table-wrap:has(.glass-table-responsive){max-height:clamp(220px,45dvh,520px);overflow:auto;overscroll-behavior:contain}}
+
+.glass-pager{padding:8px 12px;border-radius:14px;background:rgba(27,38,52,.96);border:1px solid rgba(255,255,255,.1)}
+
+/* Shared lists follow the compact catalogue rows. */
+.glass-main .glass-table-wrap,.glass-orders .glass-table-wrap{background:transparent;border:0}
+.glass-main .glass-table{border-collapse:separate;border-spacing:0 4px}
+.glass-main .glass-table th,.glass-orders .glass-table th{background:#293442;color:rgba(255,255,255,.68);padding:10px 12px}
+.glass-main .glass-table th:first-child{border-radius:12px 0 0 12px}
+.glass-main .glass-table th:last-child{border-radius:0 12px 12px 0}
+.glass-main .glass-table tbody tr td,.glass-orders .glass-table tbody tr td{background:rgba(255,255,255,.045);border:0;padding:10px 12px;transition:background-color .2s}
+.glass-main .glass-table tbody tr td:first-child{border-radius:16px 0 0 16px}
+.glass-main .glass-table tbody tr td:last-child{border-radius:0 16px 16px 0}
+.glass-main .glass-table tbody tr[data-clickable]:hover td,.glass-main .glass-table tbody tr[aria-selected=true] td{background:rgba(255,255,255,.12)}
+@media(max-width:640px){.glass-main .glass-table-responsive tr{padding:12px;border-radius:16px;background:rgba(255,255,255,.045)}.glass-main .glass-table-responsive tbody tr td,.glass-orders .glass-table-responsive tbody tr td{padding:0;border:0;background:none!important}.glass-main .glass-table-responsive tbody tr[data-clickable]:hover{background:rgba(255,255,255,.12)}}
+
+/* Table screens fill the workspace; only the rows scroll. */
+@media(min-width:1100px){
+  .glass-scroll:has(.glass-table-wrap){display:flex;flex-direction:column;align-content:normal;overflow:hidden}
+  .glass-scroll > .glass-card:has(.glass-table-wrap){display:flex;flex:1 1 0;flex-direction:column;min-height:0;overflow:hidden}
+  .glass-scroll > .glass-card:has(.glass-table-wrap) > div:has(> [aria-busy] .glass-table-wrap){display:flex;flex:1 1 0;flex-direction:column;min-height:0}
+  .glass-scroll > .glass-card:has(.glass-table-wrap) > div > [aria-busy]:has(.glass-table-wrap){display:flex;flex:1 1 0;flex-direction:column;min-height:0}
+  .glass-main .glass-scroll > .glass-card .glass-table-wrap{flex:1 1 0;min-height:0;max-height:none;overflow:auto}
+  .glass-card .glass-pager{flex:none}
+}
+
+.orders-filter-disclosure{min-width:0;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.04)}
+.orders-filter-disclosure>summary{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;cursor:pointer;list-style:none;font-size:13px;font-weight:600}
+.orders-filter-disclosure>summary::-webkit-details-marker{display:none}
+.orders-filter-disclosure>summary:hover{background:rgba(255,255,255,.06);border-radius:12px}
+.orders-filter-disclosure>summary:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.orders-filter-count{border-radius:999px;padding:2px 8px;background:rgba(84,137,229,.3);font-size:12px;font-weight:500}
+.orders-filter-chevron{margin-left:auto;transition:transform .2s}
+.orders-filter-disclosure[open] .orders-filter-chevron{transform:rotate(180deg)}
+.glass-orders .orders-filter-disclosure .orders-filter-row{padding:4px 12px 12px}
+
+/* Fit the order columns within the workspace before requiring sideways scrolling. */
+@media(min-width:641px){
+  .glass-orders .glass-table{table-layout:fixed}
+  .glass-orders .glass-table th,.glass-orders .glass-table td{padding-left:6px;padding-right:6px}
+  .glass-orders .glass-table th:first-child{width:32px}
+  .glass-orders .glass-table [data-column=number]{width:100px}
+  .glass-orders .glass-table [data-column=stage]{width:145px}
+  .glass-orders .glass-table [data-column=payment]{width:90px}
+  .glass-orders .glass-table [data-column=total]{width:105px}
+  .glass-orders .glass-table [data-column=next]{width:160px}
+  .glass-orders .glass-table [data-column=customer] span{max-width:100%}
+  .glass-orders .glass-table [data-column=stage] .muted{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .glass-orders .glass-table .glass-flow-primary{width:108px}
+}
+@media(min-width:641px) and (max-width:1500px){.glass-orders .glass-table [data-column=payment]{display:none}}
+
+@media(min-width:641px){
+  .glass-orders .glass-table [data-column=customer]{width:150px}
+  .glass-orders .glass-table [data-column=number]{width:92px}
+  .glass-orders .glass-table [data-column=stage]{width:138px}
+  .glass-orders .glass-table [data-column=total]{width:100px}
+  .glass-orders .glass-table [data-column=next]{width:150px}
+}
+
+/* Compact order summary and controls leave room for the list. */
+.orders-toolbar{display:flex;align-items:flex-start;gap:8px;margin-top:10px;flex-wrap:wrap}
+.orders-overview{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:0;min-height:36px}
+.orders-overview>div{gap:6px;padding:5px 8px;border:0;border-radius:10px;background:rgba(255,255,255,.07)}
+.orders-overview strong{font-size:14px;line-height:20px}
+.orders-overview span{font-size:12px;white-space:nowrap}
+.orders-controls{display:flex;flex:1 1 260px;align-items:flex-start;justify-content:flex-end;gap:8px;min-width:0;margin:0;padding:0;border:0;background:none}
+.orders-controls>details{flex:0 1 auto;min-width:0}
+.orders-notice summary,.orders-filter-disclosure>summary{min-height:36px;padding:7px 10px}
+.orders-notice-link{margin-left:4px}
+.orders-filter-chevron{margin-left:4px}
+.orders-controls:has(details[open]){flex-wrap:wrap}
+.orders-controls>details[open]{flex:1 1 100%}
+.orders-results{margin-top:10px}
+@media(max-width:700px){.orders-toolbar{gap:6px}.orders-overview>div{flex-direction:row;align-items:center}.orders-controls{justify-content:flex-start;flex-wrap:wrap}.orders-controls>details{flex:1 1 auto}}
+
+/* Open order controls above the list without resizing it. */
+.orders-toolbar{position:relative;z-index:5}
+.orders-controls:has(details[open]){flex-wrap:nowrap}
+.orders-controls>details[open]{flex:0 1 auto}
+.orders-notice-content,.glass-orders .orders-filter-disclosure .orders-filter-row{position:absolute;top:calc(100% + 6px);right:0;z-index:10;width:min(100%,680px);max-height:min(60dvh,480px);overflow:auto;padding:16px;border:1px solid rgba(220,235,255,.2);border-radius:16px;background:#253242;box-shadow:0 20px 44px rgba(0,0,0,.45)}
+.orders-notice-content{width:min(100%,480px)}
+@media(max-width:700px){.orders-controls:has(details[open]){flex-wrap:wrap}.orders-notice-content,.glass-orders .orders-filter-disclosure .orders-filter-row{width:100%}}
+
+/* Order board */
+.glass-orders .glass-board{grid-auto-columns:minmax(230px,1fr);gap:10px;align-items:stretch;padding:2px 2px 12px}
+.glass-orders .glass-board-column{--stage-color:#8dbbff;display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px;border-radius:18px;background:rgba(13,20,31,.45);border:1px solid rgba(220,234,255,.1)}
+.glass-orders .glass-board-column[data-stage=to_prepare]{--stage-color:#f5c879}
+.glass-orders .glass-board-column[data-stage=packed]{--stage-color:#9dbbff}
+.glass-orders .glass-board-column[data-stage=shipped]{--stage-color:#80ddc1}
+.glass-orders .glass-board-column[data-stage=issue]{--stage-color:#ffaba4;background:rgba(74,40,45,.48);border-color:rgba(255,171,164,.18)}
+.glass-orders .glass-board-column header{min-height:54px;padding:2px 2px 10px;border-bottom:1px solid rgba(255,255,255,.1)}
+.glass-orders .glass-board-column header h3{font-size:13px;gap:6px}
+.board-stage-title{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.board-stage-title i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--stage-color)}
+.glass-orders .glass-board-column header p{margin:5px 0 0 16px;font-size:11px}
+.glass-orders .glass-board-column ul{align-content:start;gap:8px;max-height:min(54dvh,640px);padding:0 3px 4px 0}
+.glass-orders .glass-dispatch-card{display:grid;gap:10px;padding:12px;border-radius:14px;background:#344253;border:1px solid rgba(225,237,255,.1);box-shadow:0 8px 20px -16px #000}
+.glass-orders .glass-dispatch-card:hover{background:#3d4e62;border-color:rgba(225,237,255,.26)}
+.glass-dispatch-open{display:grid;gap:10px}
+.board-card-heading,.board-card-total{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
+.board-card-heading strong{font-size:14px;color:#fff}.board-card-heading>span,.board-card-muted,.board-card-total>span{font-size:11px;color:#b8c8da}
+.board-card-customer{display:flex;align-items:center;gap:10px;min-width:0;font-size:13px}
+.board-card-total{padding-top:8px;border-top:1px solid rgba(255,255,255,.08);font-size:13px}
+.board-card-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:11px;overflow-wrap:anywhere}
+.board-card-actions{display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+.glass-orders .board-card-actions .glass-flow{min-width:0}
+.glass-orders .board-card-actions .glass-flow-primary{width:auto;min-width:96px}
+.glass-orders .glass-board-empty{font-size:12px;padding:12px;background:rgba(255,255,255,.04)}
+@media(max-width:640px){.glass-orders .glass-board{grid-auto-columns:minmax(240px,82vw)}.glass-orders .glass-board-column ul{max-height:55dvh}}
+
+/* Vertical order stages avoid a horizontal board scrollbar. */
+.orders-board-accordion{display:grid;gap:8px;min-width:0}
+.board-stage{--stage-color:#8dbbff;min-width:0;border:1px solid rgba(220,234,255,.12);border-radius:16px;background:rgba(13,20,31,.48)}
+.board-stage[data-stage=to_prepare]{--stage-color:#f5c879}.board-stage[data-stage=packed]{--stage-color:#9dbbff}.board-stage[data-stage=shipped]{--stage-color:#80ddc1}.board-stage[data-stage=issue]{--stage-color:#ffaba4;background:rgba(74,40,45,.4)}
+.board-stage-toggle{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;text-align:left;border-radius:16px;font-size:14px;font-weight:600}
+.board-stage-toggle:hover{background:rgba(255,255,255,.06)}
+.board-stage-toggle small{display:block;margin-top:2px;color:#b8c8da;font-size:11px;font-weight:400}
+.board-stage-end{display:flex;align-items:center;gap:10px;flex:none}
+.board-stage-chevron{transition:transform .2s}.board-stage-toggle[aria-expanded=true] .board-stage-chevron{transform:rotate(180deg)}
+.board-stage-content{padding:0 12px 12px}.board-stage-content[hidden]{display:none}
+.board-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));align-content:start;gap:8px;max-height:min(45dvh,480px);overflow-y:auto;padding:2px 4px 4px 0}
+.board-stage-content>.glass-chip{margin-top:10px}
+.orders-board-accordion .glass-dispatch-card{display:grid;gap:10px;padding:12px;border-radius:14px;background:#344253;border:1px solid rgba(225,237,255,.1)}
+.orders-board-accordion .glass-dispatch-card:hover{background:#3d4e62}
+.orders-board-accordion .board-card-actions .glass-flow{flex:1;min-width:0}
+.orders-board-accordion .board-card-actions .glass-flow-primary{width:auto;min-width:96px}
+@media(max-width:640px){.board-cards{grid-template-columns:1fr;max-height:44dvh}.board-stage-toggle small{line-height:1.3}}
+
+/* Password setup */
+.password-form,.password-form-content,.password-form-fields,.password-form-rules{display:grid;gap:16px;min-width:0}
+.password-form-footer .glass-cta{width:100%;justify-content:center}
+.password-change.glass-login{position:relative;width:min(880px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:32px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.password-change .glass-login-brand{margin-bottom:16px;padding-right:80px}
+.password-change h1{font-size:30px}
+.password-change>p{margin-top:8px}
+.password-change .password-form{display:flex;flex-direction:column;min-height:0;margin-top:20px;gap:0}
+.password-change .password-form-content{grid-template-columns:minmax(0,1.25fr) minmax(200px,1fr);align-items:start;gap:24px;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 8px 0}
+.password-change .password-form-rules{padding:16px;border-radius:16px;background:rgba(255,255,255,.07)}
+.password-change .password-form-footer{flex:none;padding-top:12px}
+.password-logout{position:absolute;top:32px;right:32px}
+@media(max-width:640px){
+  .password-change.glass-login{width:calc(100% - 16px);max-height:calc(100dvh - 16px);padding:20px}
+  .password-change .glass-login-brand{margin-bottom:12px}
+  .password-change .glass-login-brand img{width:44px;height:44px}
+  .password-change h1{font-size:24px}
+  .password-change>p{font-size:13px}
+  .password-change .password-form{margin-top:12px}
+  .password-change .password-form-content{grid-template-columns:minmax(0,1fr);gap:12px}
+  .password-change .password-form-fields,.password-change .password-form-rules{gap:10px}
+  .password-change .password-form-rules{padding:12px}
+  .password-change .password-form-footer{padding-top:12px;padding-bottom:env(safe-area-inset-bottom)}
+  .password-logout{top:20px;right:20px}
+}
+
+/* Inventory shows one full workspace at a time. */
+.inventory-workspace{gap:10px}
+.inventory-switch{flex:none;min-width:0}
+.inventory-switch .glass-segmented{max-width:100%}
+.inventory-card{min-width:0}
+.inventory-card .glass-table td{overflow-wrap:anywhere}
+.inventory-card .glass-table [data-column=title],.inventory-card .glass-table [data-column=product]{min-width:0}
+.inventory-card .glass-table [data-column=title] span,.inventory-card .glass-table [data-column=product] span{max-width:100%}
+@media(min-width:1100px){.inventory-workspace>.inventory-card{flex:1 1 0;min-height:0}}
+@media(min-width:641px){
+ .inventory-card .glass-table{table-layout:fixed}
+ .inventory-card .glass-table th{white-space:normal;line-height:1.25}
+ .inventory-card .glass-table [data-column=stock],.inventory-card .glass-table [data-column=demand],.inventory-card .glass-table [data-column=delta],.inventory-card .glass-table [data-column=after]{width:90px}
+ .inventory-card .glass-table [data-column=date]{width:140px}
+ .inventory-card .glass-table [data-column=kind]{width:130px}
+ .inventory-card .glass-table [data-column=backorders]{width:140px}
+}
+@media(max-width:640px){
+ .inventory-switch .glass-segmented{display:flex;width:100%}
+ .inventory-switch .glass-segmented label{flex:1;justify-content:center}
+ .inventory-card .glass-table-responsive td{min-width:0}
+ .inventory-card .glass-table-responsive td>span{min-width:0;max-width:65%;overflow-wrap:anywhere}
+ .inventory-card .glass-table-responsive td[data-primary]{padding-right:0;text-align:left}
+ .inventory-card .glass-table-responsive td[data-primary]>span{max-width:100%}
+}
+
+/* Inventory filters and rows adapt to the actual panel width. */
+.inventory-card{container-type:inline-size}
+.inventory-filters{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.inventory-filters .glass-search{flex:1 1 200px}
+.inventory-filters .glass-label{flex:0 1 200px;min-width:140px;font-size:12px}
+.inventory-filters .glass-field{min-height:40px}
+.inventory-filters .inventory-select{width:100%;background-color:#344253;color:#fff}
+.inventory-select option{background:#263343;color:#fff}
+@container (max-width:850px){
+ .inventory-card .glass-table{display:block;table-layout:auto}
+ .inventory-card .glass-table thead{display:none}
+ .inventory-card .glass-table tbody{display:grid;gap:6px}
+ .inventory-card .glass-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border-radius:16px;background:rgba(255,255,255,.05)}
+ .glass-main .inventory-card .glass-table tbody tr td{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-width:0;width:auto;padding:0;background:none;border:0;text-align:right}
+ .inventory-card .glass-table td::before{content:attr(data-label);flex:none;max-width:50%;font-size:12px;color:rgba(255,255,255,.6);text-align:left}
+ .glass-main .inventory-card .glass-table td[data-primary]{grid-column:1 / -1;display:block;text-align:left}
+ .inventory-card .glass-table td[data-primary]::before{content:none}
+ .inventory-card .glass-table td[data-column=reason]{grid-column:1 / -1}
+ .inventory-card .glass-table td>span{min-width:0;overflow-wrap:anywhere}
+ .inventory-card .glass-table td .whitespace-nowrap{white-space:normal}
+}
+@container (max-width:480px){.inventory-card .glass-table tr{grid-template-columns:minmax(0,1fr)}.inventory-card .glass-table td[data-primary],.inventory-card .glass-table td[data-column=reason]{grid-column:auto}}
+
+/* Inventory records are self-contained rows with no fixed-width table columns. */
+.inventory-list{display:grid;align-content:start;gap:6px;min-width:0;max-height:45dvh;overflow-y:auto;overscroll-behavior:contain;padding:2px}
+.inventory-row{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0;padding:12px;border-radius:16px;background:rgba(255,255,255,.06)}
+.inventory-product{display:grid;gap:3px;min-width:0}.inventory-product strong{font-size:14px;line-height:1.35;overflow-wrap:anywhere}.inventory-product span,.inventory-reason>span,.inventory-reason small{font-size:12px;color:rgba(255,255,255,.65);overflow-wrap:anywhere}
+.inventory-values{display:flex;flex-wrap:wrap;gap:8px 20px;min-width:0}.inventory-values>div{display:grid;align-content:start;gap:3px;min-width:0}.inventory-values dt{font-size:11px;color:rgba(255,255,255,.65)}.inventory-values dd{font-size:13px;overflow-wrap:anywhere}
+.inventory-reason{display:grid;gap:3px;min-width:0;font-size:13px;overflow-wrap:anywhere}.inventory-reason .glass-link{width:fit-content;max-width:100%;overflow-wrap:anywhere}
+@media(min-width:1100px){.inventory-workspace:has(.inventory-list){display:flex;flex-direction:column;overflow:hidden}.inventory-workspace>.inventory-card:has(.inventory-list){display:flex;flex:1 1 0;flex-direction:column;min-height:0;overflow:hidden}.inventory-card>div:has(> [aria-busy] .inventory-list),.inventory-card>div>[aria-busy]:has(.inventory-list){display:flex;flex:1 1 0;flex-direction:column;min-height:0}.inventory-card .inventory-list{flex:1 1 0;min-height:0;max-height:none}}
+@media(max-width:640px){.inventory-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inventory-list{max-height:50dvh}}
+
+/* Responsive content follows the width of the workspace, including sidebars. */
+.glass-main-inner,.glass-scroll,.glass-card,.glass-dialog-body,.glass-panel,.glass-pager{min-width:0}
+.glass-card,.glass-panel,.glass-dialog-body{overflow-wrap:anywhere}
+.glass-table-wrap{container-type:inline-size}
+@container (max-width:760px){
+ .glass-table-responsive,.glass-table-responsive tbody{display:block;width:100%}
+ .glass-table-responsive thead{display:none}
+ .glass-main .glass-table-responsive tr{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:4px 0;padding:12px;border-radius:16px;background:rgba(255,255,255,.05)}
+ .glass-main .glass-table-responsive tbody tr td,.glass-orders .glass-table-responsive tbody tr td{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;width:auto;min-width:0;padding:0;border:0;background:none!important;text-align:right;white-space:normal;overflow-wrap:anywhere}
+ .glass-table-responsive td::before{content:attr(data-label);flex:0 1 40%;min-width:0;font-size:12px;color:rgba(255,255,255,.65);text-align:left;overflow-wrap:anywhere}
+ .glass-main .glass-table-responsive td[data-primary]{display:block;padding-right:36px;text-align:left}
+ .glass-table-responsive td[data-primary]::before,.glass-table-responsive td.glass-cell-check::before{content:none}
+ .glass-table-responsive td.glass-cell-check{position:absolute;top:12px;right:12px}
+ .glass-table-responsive td>*{min-width:0;max-width:100%}
+ .glass-table-responsive td .whitespace-nowrap{white-space:normal}
+ .glass-orders .glass-table{table-layout:auto}
+ .glass-orders .glass-table [data-column=payment]{display:flex}
+ .glass-orders .glass-table .glass-flow{max-width:100%;flex-wrap:wrap}
+}
+.glass-main .glass-presets{flex-wrap:wrap;overflow:visible;margin:0;padding:0}
+.glass-main .glass-tabs,.glass-dialog .glass-tabs{flex-wrap:wrap;overflow:visible}
+.glass-main .glass-preset{white-space:normal}
+.glass-main .glass-filters>*{min-width:0;max-width:100%}
+.glass-dialog .glass-lines>li{min-width:0;flex-wrap:wrap}
+.glass-dialog .glass-lines>li>div{min-width:0;overflow-wrap:anywhere}
+@media(max-width:640px){
+ .glass-page-head{flex-wrap:wrap}.glass-page-head>div.min-w-0{flex:1 1 160px}.glass-tools{flex:none}
+ .glass-product-row{flex-wrap:wrap;gap:8px}.glass-product-row>span:last-child{text-align:left}
+ .glass-dialog-actions>span{min-width:0;flex-wrap:wrap}
+ .glass-secret-value code{min-width:0;overflow-wrap:anywhere}
+}
+
+/* Constrain the entire administrative workspace to the viewport. */
+.glass-stage,.glass-space,.glass-main,.glass-main-inner{box-sizing:border-box;min-width:0;max-width:100%}
+.glass-space>.glass-main{width:100%;min-width:0}
+.glass-main-inner{width:100%}
+.glass-main-inner>*,.glass-scroll>*,.glass-card>*,.glass-dialog-body>*{min-width:0;max-width:100%}
+.glass-main img,.glass-main svg,.glass-dialog img,.glass-dialog svg{max-width:100%}
+@media(max-width:1099px){
+ .glass-stage{width:100%;max-width:100%;overflow-x:clip}
+ .glass-space{box-sizing:border-box;width:100%;max-width:100%;min-width:0;align-items:stretch}
+ .glass-main,.glass-no-side .glass-main,.glass-right{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+ .glass-right{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+ .glass-main-inner{width:100%;max-width:100%}
+}
+@media(max-width:560px){.glass-main-inner{padding:12px}.glass-page-head{gap:8px}.glass-page-head>div.min-w-0{flex:1 1 100px}.glass-tools{gap:4px}.glass-card{padding:12px}}

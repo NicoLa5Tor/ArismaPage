@@ -57,7 +57,7 @@ export function Async<T>({ state, label, rows, empty, children }: { state: Loade
 
 export function Pager({ offset, total, onChange, size = PAGE_SIZE }: { offset: number; total: number; onChange: (offset: number) => void; size?: number }) {
   if (total <= size && offset === 0) return total > 0 ? <p className="mt-4 text-xs text-stone-500">{count(total)} en total</p> : null
-  return <nav aria-label="Paginación" className="mt-4 flex flex-wrap items-center justify-between gap-4"><span className="text-xs text-stone-500">{`${count(offset + 1)} a ${count(Math.min(offset + size, total))} de ${count(total)}`}</span>
+  return <nav aria-label="Paginación" className="glass-pager mb-2 flex flex-wrap items-center justify-between gap-4"><span className="text-xs text-stone-500">{`${count(offset + 1)} a ${count(Math.min(offset + size, total))} de ${count(total)}`}</span>
     <div className="flex gap-2"><button type="button" className="glass-chip" disabled={offset === 0} onClick={() => onChange(Math.max(0, offset - size))}>Anterior</button><button type="button" className="glass-chip" disabled={offset + size >= total} onClick={() => onChange(offset + size)}>Siguiente</button></div></nav>
 }
 

@@ -55,7 +55,7 @@ export function OrderDialog({ id, onClose }: { id: string; onClose: () => void }
     {order.error ? <Failure message={order.error} onRetry={order.reload} /> : !o ? <Loading label="Cargando pedido" rows={5} /> : <div className="grid gap-6">
       <Journey stage={o.stage} method={o.deliveryMethod} cashOnDelivery={o.paymentMethod === "cod" && !o.paidAt} />
       {o.stage === "issue" && <p className="glass-banner" role="status">{o.status === "on_hold" ? "El pedido está en espera: revisa el pago o la disponibilidad y luego reanúdalo." : s?.failureReason ? `No se entregó: ${s.failureReason}. Reintenta el envío o registra la devolución.` : "Este pedido necesita una revisión."}</p>}
-      <div className="glass-stats">
+      <div className="glass-stats orders-detail-stats">
         <Stat label="Total" value={money(o.total)} hint={o.taxTotal ? `IVA ${money(o.taxTotal)}` : undefined} />
         <Stat label="Productos" value={plural(units, "unidad", "unidades")} hint={plural(o.lines.length, "referencia", "referencias")} />
         <Stat label="Pago" value={o.paymentMethod ? PAYMENT[o.paymentMethod] ?? o.paymentMethodTitle : "Sin método"} hint={o.paidAt ? `Pagado ${date(o.paidAt)}` : o.paymentMethod === "cod" ? "Se paga al entregar" : "Sin pago registrado"} />
@@ -64,7 +64,7 @@ export function OrderDialog({ id, onClose }: { id: string; onClose: () => void }
       {error && <p role="alert" className="glass-alert">{error}</p>}
       <Tabs label="Detalle del pedido" value={tab} onChange={setTab} tabs={[{ id: "summary", label: "Resumen" }, { id: "products", label: "Productos", badge: o.lines.length }, { id: "history", label: "Historial", badge: history.length }]} />
 
-      <TabPanel active={tab === "summary"}><div className="glass-panels">
+      <TabPanel active={tab === "summary"}><div className="glass-panels orders-detail-panels">
         <DeliveryCard orderId={o.id} shipment={s} address={addressLine(o.shipping.address_1 ? o.shipping : o.billing)} onChange={setLocalShipment} />
         <Panel icon={User} title="Cliente" action={o.customer ? <button type="button" className="glass-chip" onClick={() => openCustomer(o.customer!.id)}>Ver ficha</button> : undefined}>
           <dl className="glass-rows"><Row label="Nombre">{name}</Row><Row label="Correo">{o.billing.email ?? o.customer?.email}</Row><Row label="Teléfono">{o.billing.phone ?? o.customer?.phone}</Row>

@@ -21,11 +21,11 @@ type Selection = { selected: Set<string>; onToggle: (id: string) => void; onTogg
  */
 export function DataTable<T extends { id: string }>({ caption, rows, columns, onOpen, selection }: { caption: string; rows: T[]; columns: Column<T>[]; onOpen?: (row: T) => void; selection?: Selection }) {
   const allSelected = !!selection && rows.length > 0 && rows.every(r => selection.selected.has(r.id))
-  return <div className="glass-table-wrap"><table className="glass-table glass-table-responsive"><caption className="sr-only">{caption}</caption>
-    <thead><tr>{selection && <th className="w-8"><input type="checkbox" aria-label="Seleccionar todo en esta página" checked={allSelected} onChange={selection.onToggleAll} /></th>}{columns.map(c => <th key={c.key} className={c.numeric ? "num" : undefined}>{c.label}</th>)}</tr></thead>
+  return <div className="glass-table-wrap" role="region" aria-label={caption} tabIndex={0}><table className="glass-table glass-table-responsive"><caption className="sr-only">{caption}</caption>
+    <thead><tr>{selection && <th className="w-8"><input type="checkbox" aria-label="Seleccionar todo en esta página" checked={allSelected} onChange={selection.onToggleAll} /></th>}{columns.map(c => <th key={c.key} data-column={c.key} className={c.numeric ? "num" : undefined}>{c.label}</th>)}</tr></thead>
     <tbody>{rows.map(row => <tr key={row.id} data-clickable={onOpen ? "" : undefined} aria-selected={selection ? selection.selected.has(row.id) : undefined} onClick={onOpen ? () => onOpen(row) : undefined}>
       {selection && <td className="glass-cell-check" onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={selection.label(row.id)} checked={selection.selected.has(row.id)} onChange={() => selection.onToggle(row.id)} /></td>}
-      {columns.map(c => <td key={c.key} data-label={c.label} data-primary={c.primary ? "" : undefined} data-desktop-only={c.desktopOnly ? "" : undefined} className={c.numeric ? "num" : undefined}>
+      {columns.map(c => <td key={c.key} data-column={c.key} data-label={c.label} data-primary={c.primary ? "" : undefined} data-desktop-only={c.desktopOnly ? "" : undefined} className={c.numeric ? "num" : undefined}>
         {c.primary && onOpen ? <button type="button" className="glass-row-link" onClick={e => { e.stopPropagation(); onOpen(row) }}>{c.render(row)}</button> : c.render(row)}
       </td>)}
     </tr>)}</tbody>

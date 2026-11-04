@@ -31,8 +31,8 @@ export function QuotesSection() {
       <div className="glass-filters"><Search value={q} onChange={v => { setQ(v); setOffset(0) }} label="Buscar por número, nombre o correo" /></div>
     </div>
     <div className="mt-4"><Async state={quotes} label="Cargando cotizaciones" rows={6} empty={{ icon: FileText, title: "No hay cotizaciones con este filtro", when: d => d.items.length === 0 }}>{d => <>
-      <DataTable caption="Cotizaciones" rows={d.items} columns={COLUMNS} onOpen={r => openQuote(r.id)} />
       <Pager offset={offset} total={d.total} onChange={setOffset} />
+      <DataTable caption="Cotizaciones" rows={d.items} columns={COLUMNS} onOpen={r => openQuote(r.id)} />
     </>}</Async></div>
   </Card></div>
 }

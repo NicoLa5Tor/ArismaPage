@@ -1,8 +1,8 @@
-import { PRODUCT_PAGE, type CatalogPort } from "../application/catalog-port"
+import { type CatalogPort } from "../application/catalog-port"
 import { json, qs, request, seg } from "../../shared/adapters/http-client"
 
 export const httpCatalog: CatalogPort = {
-  listProducts(q, offset, status) { return request(`/products?${qs({ q, status, limit: PRODUCT_PAGE, offset })}`) },
+  listProducts(q, offset, status, limit) { return request(`/products?${qs({ q, status, limit, offset })}`) },
   saveProduct(id, product, csrf) { return request(`/products${id ? `/${seg(id)}` : ""}`, json(id ? "PUT" : "POST", product, csrf)) },
   listCategories() { return request("/categories") },
   saveCategory(category, csrf) { return request(`/categories${category.id ? `/${seg(category.id)}` : ""}`, json(category.id ? "PUT" : "POST", category, csrf)) },

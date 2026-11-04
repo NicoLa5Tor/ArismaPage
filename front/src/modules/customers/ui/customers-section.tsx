@@ -32,8 +32,8 @@ export function CustomersSection() {
       <Chips label="Ordenar por" value={sort} onChange={v => { setSort((v || "recent") as CustomerSort); setOffset(0) }} options={SORTS} />
     </div>
     <div className="mt-4"><Async state={customers} label="Cargando clientes" rows={6} empty={{ icon: Users, title: "No encontramos clientes", hint: buyers ? "Desmarca “Solo quienes han comprado” para ver todas las cuentas." : "Prueba con otra búsqueda.", when: d => d.items.length === 0 }}>{d => <>
-      <DataTable caption="Clientes" rows={d.items} columns={COLUMNS} onOpen={c => openCustomer(c.id)} />
       <Pager offset={offset} total={d.total} onChange={setOffset} />
+      <DataTable caption="Clientes" rows={d.items} columns={COLUMNS} onOpen={c => openCustomer(c.id)} />
     </>}</Async></div>
   </Card></div>
 }

@@ -78,7 +78,7 @@ export function FlowActions({ target, variant = "compact", onDone }: { target: F
       <span className="flex flex-wrap gap-2">{rest.map(s => <button key={s.id} type="button" className={`glass-chip${s.tone === "danger" ? " glass-chip-danger" : ""}`} disabled={run.busy} onClick={() => run.start(s)}>{s.label}</button>)}</span>
       {main && <button type="button" className="glass-cta" disabled={run.busy} onClick={() => run.start(main)}>{run.busy ? "Guardando…" : main.label}</button>}
     </> : <>
-      {main && <button type="button" className="glass-chip glass-chip-primary" disabled={run.busy} onClick={() => run.start(main)}>{run.busy ? "…" : main.label}</button>}
+      {main && <button type="button" className="glass-chip glass-chip-primary glass-flow-primary" disabled={run.busy} onClick={() => run.start(main)}>{run.busy ? "…" : main.label}</button>}
       <MoreMenu steps={rest} onPick={run.start} disabled={run.busy} label={`Más acciones del pedido #${target.number}`} />
     </>}
     {run.dialog}
