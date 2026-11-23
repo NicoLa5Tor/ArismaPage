@@ -21,10 +21,11 @@ public class AdminOrderResource {
     public record StatusChange(OrderStatus status,String note) {}
     public record BulkStatusChange(List<UUID> ids,OrderStatus status,String note) {}
     public record Note(String body) {}
+    public record KeepActive(boolean active) {}
 
     @GET public OrderQueries.OrderList list(@QueryParam("status") String status,@QueryParam("from") String from,@QueryParam("to") String to,@QueryParam("q") @DefaultValue("") String q,@QueryParam("stage") String stage,
-                                            @QueryParam("limit") @DefaultValue("25") int limit,@QueryParam("offset") @DefaultValue("0") int offset) {
-        return queries.list(new OrderQueries.Filter(OrderStatus.parse(status),DateWindow.optional(from,to),q,stage),new Page.Request(limit,offset));
+                                            @QueryParam("historial") boolean history,@QueryParam("limit") @DefaultValue("25") int limit,@QueryParam("offset") @DefaultValue("0") int offset) {
+        return queries.list(new OrderQueries.Filter(OrderStatus.parse(status),DateWindow.optional(from,to),q,stage,history),new Page.Request(limit,offset));
     }
     @GET @Path("/{id}") public Map<String,Object> get(@PathParam("id") UUID id) { return queries.detail(id).orElseThrow(() -> new NotFound("Pedido no encontrado")); }
     @Requires(Permission.ORDERS_MANAGE) @POST @Path("/{id}/status") public Map<String,Object> status(@PathParam("id") UUID id,StatusChange in) {
@@ -37,5 +38,9 @@ public class AdminOrderResource {
         return orders.changeStatuses(in.ids(),in.status(),in.note(),actor());
     }
     @Requires(Permission.ORDERS_MANAGE) @POST @Path("/{id}/notes") public Response note(@PathParam("id") UUID id,Note in) { return Response.status(201).entity(orders.addNote(id,in==null?null:in.body(),actor())).build(); }
+    @Requires(Permission.ORDERS_MANAGE) @POST @Path("/{id}/active") public Map<String,Object> keepActive(@PathParam("id") UUID id,KeepActive in) {
+        orders.keepActive(id,in!=null&&in.active(),actor());
+        return get(id);
+    }
     private UUID actor() { return (UUID)context.getProperty("adminUser"); }
 }

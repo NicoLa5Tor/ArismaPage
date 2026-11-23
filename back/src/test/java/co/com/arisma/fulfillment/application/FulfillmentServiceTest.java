@@ -22,7 +22,18 @@ class FulfillmentServiceTest {
     }
     static class Lifecycle implements OrderLifecycle { final List<UUID> completed = new ArrayList<>(); public void completeOnDelivery(UUID id, UUID actor) { completed.add(id); } }
     Repo repo; Lifecycle lifecycle; FulfillmentService service;
-    @BeforeEach void setUp() { repo = new Repo(); lifecycle = new Lifecycle(); service = new FulfillmentService(); service.shipments = repo; service.orders = lifecycle; service.self = service; }
+    @BeforeEach void setUp() { repo = new Repo(); lifecycle = new Lifecycle(); service = new FulfillmentService(); service.shipments = repo; service.orders = lifecycle; service.self = service; service.moved = moved; }
+    final Moved moved = new Moved();
+    /** Collects fired delivery events instead of notifying observers. */
+    static class Moved implements jakarta.enterprise.event.Event<ShipmentMoved> {
+        final List<ShipmentMoved> fired = new ArrayList<>();
+        public void fire(ShipmentMoved e) { fired.add(e); }
+        public <U extends ShipmentMoved> java.util.concurrent.CompletionStage<U> fireAsync(U e) { fired.add(e); return java.util.concurrent.CompletableFuture.completedFuture(e); }
+        public <U extends ShipmentMoved> java.util.concurrent.CompletionStage<U> fireAsync(U e, jakarta.enterprise.event.NotificationOptions o) { return fireAsync(e); }
+        public jakarta.enterprise.event.Event<ShipmentMoved> select(java.lang.annotation.Annotation... q) { return this; }
+        public <U extends ShipmentMoved> jakarta.enterprise.event.Event<U> select(Class<U> t, java.lang.annotation.Annotation... q) { throw new UnsupportedOperationException(); }
+        public <U extends ShipmentMoved> jakarta.enterprise.event.Event<U> select(jakarta.enterprise.util.TypeLiteral<U> t, java.lang.annotation.Annotation... q) { throw new UnsupportedOperationException(); }
+    }
     UUID order(DeliveryMethod m, FulfillmentStatus s, Shipment.OrderState state) {
         var id = UUID.randomUUID(); repo.byOrder.put(id, new Shipment(UUID.randomUUID(), id, m, s, null, null, null, null, null, null, null, null, null)); repo.orders.put(id, state); return id;
     }

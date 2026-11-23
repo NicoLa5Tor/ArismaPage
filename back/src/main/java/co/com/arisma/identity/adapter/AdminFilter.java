@@ -22,7 +22,7 @@ public class AdminFilter implements ContainerRequestFilter {
     @Context ResourceInfo resource;
     public void filter(ContainerRequestContext request) {
         String path = request.getUriInfo().getPath().replaceFirst("^/+", "");
-        if (!path.startsWith("api/admin/") || path.equals("api/admin/session")) return;
+        if (!path.startsWith("api/admin/") || (path.equals("api/admin/session") || path.equals("api/admin/session/social/start") || path.equals("api/admin/session/social/callback"))) return;
         var cookie = request.getCookies().get(SessionResource.COOKIE);
         boolean write = !request.getMethod().equals("GET") && !request.getMethod().equals("HEAD");
         try {

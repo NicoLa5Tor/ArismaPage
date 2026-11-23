@@ -1,119 +1,114 @@
 "use client"
 
 import { useState } from "react"
-import { CaretDown, Kanban, ListBullets, Receipt, SlidersHorizontal, WarningCircle, X } from "@phosphor-icons/react"
-import type { OrderRow } from "../domain/orders"
+import { CalendarBlank, CaretDown, ClockCounterClockwise, Kanban, ListBullets, Receipt, Tray, X } from "@phosphor-icons/react"
 import { BULK_STEPS, STAGES, WORK_STAGES } from "../domain/stage"
-import { count, date, money, plural, time } from "../../shared/ui/format"
+import { count, money, plural } from "../../shared/ui/format"
 import { Async, Card, Dialog, Pager, Search, useDebounced, useLoad } from "../../shared/ui/parts"
 import { Segmented } from "../../shared/ui/rich"
-import { DataTable, type Column } from "../../shared/ui/data-table"
 import { useCan, useSession } from "../../shared/ui/admin-context"
 import { METHOD } from "../../fulfillment/ui/labels"
 import { useFulfillmentPort } from "../../fulfillment/ui/use-fulfillment"
 import type { DeliveryMethod } from "../../fulfillment/domain/fulfillment"
-import { FlowActions } from "./flow-actions"
 import { OrdersBoard } from "./orders-board"
-import { PAYMENT } from "./labels"
-import { STAGE, StageBadge } from "./stage"
+import { OrdersList } from "./orders-list"
+import { STAGE } from "./stage"
 import { useOrdersPort } from "./use-orders"
 
 const IN_PROGRESS = WORK_STAGES.join(",")
 const STALE_DAYS = 60
+const STAGE_EMPTY: Record<string, string> = { unpaid: "sin pagar", to_prepare: "por preparar", packed: "empacados", shipped: "en camino", to_invoice: "por facturar", issue: "que requieran atención", delivered: "finalizados", cancelled: "cancelados", [IN_PROGRESS]: "en curso" }
 type View = "list" | "board"
+type Scope = "work" | "history"
 
-const COLUMNS: Column<OrderRow>[] = [
-  { key: "number", label: "Pedido", primary: true, render: o => <span>#{o.number}<span className="block text-xs font-normal muted">{date(o.placedAt)} · {time(o.placedAt)}</span></span> },
-  { key: "customer", label: "Cliente", render: o => <span className="block min-w-0"><span className="block max-w-56 truncate">{o.customerName ?? "Sin nombre"}</span><span className="block max-w-56 truncate text-xs muted">{o.city ?? o.customerEmail ?? ""}</span></span> },
-  { key: "stage", label: "Etapa", render: o => { const M = METHOD[o.deliveryMethod]; return <span className="grid justify-items-start gap-1"><StageBadge stage={o.stage} method={o.deliveryMethod} /><span className="flex items-center gap-1 text-xs muted"><M.icon size={12} aria-hidden="true" />{o.trackingCode ?? M.label}</span></span> } },
-  { key: "payment", label: "Pago", desktopOnly: true, render: o => <span className="muted">{o.paymentMethod ? PAYMENT[o.paymentMethod] ?? o.paymentMethodTitle : "—"}</span> },
-  { key: "total", label: "Total", numeric: true, render: o => <span className="font-semibold">{money(o.total)}</span> },
-  { key: "next", label: "Siguiente paso", render: o => <FlowActions target={{ orderId: o.id, number: o.number, stage: o.stage, orderStatus: o.status, deliveryStatus: o.deliveryStatus, deliveryMethod: o.deliveryMethod, paymentMethod: o.paymentMethod, trackingCode: o.trackingCode }} /> },
-]
-
-/** Orders and their delivery as one journey: a list to find anything, a board to move today's work. */
+/**
+ * Orders and their delivery as one journey. «En curso» is what the store still has to do; «Historial» keeps the
+ * finished, cancelled and migrated ones out of the way. One compact bar holds the search and the filters, so the
+ * screen is for the orders.
+ */
 export function OrdersSection({ initialStage = "", initialView = "list" }: { initialStage?: string; initialView?: string }) {
   const api = useOrdersPort(), fulfillment = useFulfillmentPort()
   const { csrf, notify, version, changed, go, openOrder } = useSession()
   const can = useCan()
+  const [scope, setScope] = useState<Scope>("work")
   const [view, setView] = useState<View>(initialView === "tablero" ? "board" : "list")
   const [stage, setStage] = useState(initialStage)
   const [method, setMethod] = useState<DeliveryMethod | "">("")
   const [from, setFrom] = useState(""), [to, setTo] = useState(""), [q, setQ] = useState(""), [offset, setOffset] = useState(0)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [busy, setBusy] = useState(false), [bulkError, setBulkError] = useState(""), [confirm, setConfirm] = useState<"cancel" | "stale" | null>(null)
+  const [busy, setBusy] = useState(false), [bulkError, setBulkError] = useState(""), [confirm, setConfirm] = useState<"cancel" | null>(null)
   const query = useDebounced(q)
-  const orders = useLoad(() => api.list({ status: "", from, to, q: query, offset, stage }), [from, to, query, offset, stage, version])
+  const history = scope === "history"
+  const orders = useLoad(() => api.list({ status: "", from, to, q: query, offset, stage, history }), [from, to, query, offset, stage, history, version])
   const board = useLoad(() => fulfillment.board(method, query, STALE_DAYS), [method, query, version])
   const filter = (fn: () => void) => { fn(); setOffset(0); setSelected(new Set()) }
   // The view lives in the URL (?vista=tablero) so a reload or a shared link opens the same view.
   const switchView = (v: View) => { setView(v); go("orders", { ...(stage ? { etapa: stage } : {}), ...(v === "board" ? { vista: "tablero" } : {}) }) }
+  const switchScope = (s: Scope) => filter(() => { setScope(s); setStage(""); if (s === "history") setView("list") })
   const rows = orders.data?.items ?? []
   const counts = orders.data?.stageCounts ?? {}
   const total = Object.values(counts).reduce((a, b) => a + (b ?? 0), 0)
   const inProgress = WORK_STAGES.reduce((a, s) => a + (counts[s] ?? 0), 0)
+  // only the stages that have orders here (and the one chosen), with how many
+  const stageOptions = STAGES.filter(s => (counts[s] ?? 0) > 0 || stage === s)
 
   // Bulk: one common step when every selected order is in the same stage, plus cancel.
   const selectedRows = rows.filter(r => selected.has(r.id))
   const sameStage = selectedRows.length > 0 && selectedRows.every(r => r.stage === selectedRows[0].stage) ? selectedRows[0].stage : null
   const bulkStep = sameStage ? BULK_STEPS[sameStage] : undefined
-  const canCancel = selectedRows.length > 0 && selectedRows.every(r => r.stage !== "cancelled" && r.stage !== "delivered") && can("ORDERS_MANAGE")
-  async function runBulk(kind: "step" | "cancel" | "stale") {
+  const canCancel = selectedRows.length > 0 && selectedRows.every(r => r.stage !== "cancelled" && r.stage !== "delivered" && r.stage !== "to_invoice") && can("ORDERS_MANAGE")
+  async function runBulk(kind: "step" | "cancel") {
     setBusy(true); setBulkError(""); setConfirm(null)
     try {
       const ids = Array.from(selected)
-      if (kind === "stale") { const r = await fulfillment.closeStale(STALE_DAYS, csrf); notify(`${plural(r.updated, "pedido antiguo cerrado", "pedidos antiguos cerrados")} como entregado.`) }
-      else if (kind === "cancel") { const r = await api.changeStatuses(ids, "cancelled", "Cancelado en lote", csrf); notify(`${plural(r.updated, "pedido cancelado", "pedidos cancelados")}.${r.failed.length ? ` ${r.failed.length} no se pudieron cancelar.` : ""}`) }
+      if (kind === "cancel") { const r = await api.changeStatuses(ids, "cancelled", "Cancelado en lote", csrf); notify(`${plural(r.updated, "pedido cancelado", "pedidos cancelados")}.${r.failed.length ? ` ${r.failed.length} no se pudieron cancelar.` : ""}`) }
       else if (bulkStep?.action.kind === "delivery") { const r = await fulfillment.moveAll(ids, bulkStep.action.status, "Cambio en lote", csrf); notify(`${plural(r.updated, "pedido actualizado", "pedidos actualizados")}.${r.failed.length ? ` ${r.failed.length} no se pudieron: ${r.failed[0].error}` : ""}`) }
       setSelected(new Set()); changed()
     } catch (e) { setBulkError(e instanceof Error ? e.message : "No se pudo completar") } finally { setBusy(false) }
   }
   const allOnPage = rows.length > 0 && rows.every(r => selected.has(r.id))
-  const activeFilters = [stage, from, to, q.trim(), method].filter(Boolean).length
-  const hasFilters = activeFilters > 0
-  const stale = board.data?.stale ?? 0
+  const hasFilters = [stage, from, to, q.trim(), method].some(Boolean)
+  const dated = Boolean(from || to)
+
+  const subtitle = orders.data
+    ? history ? `${plural(orders.data.total, "pedido", "pedidos")} finalizados, cancelados o de la tienda anterior` : `${plural(orders.data.total, "pedido", "pedidos")} · ${money(orders.data.amount)}${inProgress ? ` · ${count(inProgress)} por atender` : ""}`
+    : "Del pago a la entrega, en un solo lugar"
 
   return <div className="glass-scroll glass-orders">
-    <Card className="glass-orders-card" icon={Receipt} title="Pedidos" subtitle={orders.data ? `${plural(orders.data.total, "pedido", "pedidos")} · ${money(orders.data.amount)}${inProgress ? ` · ${count(inProgress)} en curso` : ""}` : "Pago, preparación y entrega en un solo lugar"}
-      actions={<><Segmented label="Vista" value={view} onChange={switchView} options={[{ value: "list", label: "Lista", icon: ListBullets }, { value: "board", label: "Tablero", icon: Kanban }]} />
-        {hasFilters && <button type="button" className="glass-chip" onClick={() => filter(() => { setStage(""); setFrom(""); setTo(""); setQ(""); setMethod("") })}><X size={14} aria-hidden="true" />Limpiar</button>}</>}>
-      <div className="orders-toolbar">
-      {orders.data && <div className="orders-overview" aria-label="Resumen de pedidos">
-        <div><span>Pedidos</span><strong>{count(total)}</strong><small>En el período consultado</small></div>
-        <div><span>En curso</span><strong>{count(inProgress)}</strong><small>Por avanzar</small></div>
-        <div><span>Requieren atención</span><strong>{count(counts.issue ?? 0)}</strong><small>Revisar novedades</small></div>
-      </div>}
-      <div className="orders-controls mt-4 grid gap-4">
-        {can("FULFILLMENT_MANAGE") && stale > 0 && <details name="orders-popovers" className="orders-notice">
-          <summary><WarningCircle size={16} aria-hidden="true" /><span>{plural(stale, "pedido antiguo pendiente", "pedidos antiguos pendientes")}</span><span className="orders-notice-link">Ver detalle</span></summary>
-          <div className="orders-notice-content"><p>Son pedidos pagados de la tienda anterior, con más de {STALE_DAYS} días en preparación. Revisa si fueron entregados antes de cerrarlos.</p>
-            {confirm === "stale" ? <span className="flex flex-wrap items-center gap-2"><span>Quedarán entregados y completados.</span><button type="button" className="glass-chip glass-chip-primary" disabled={busy} onClick={() => void runBulk("stale")}>{busy ? "Cerrando…" : "Sí, cerrarlos"}</button><button type="button" className="glass-chip" onClick={() => setConfirm(null)}>Volver</button></span>
-              : <button type="button" className="glass-chip" onClick={() => setConfirm("stale")}>Marcarlos como entregados</button>}
+    <Card className="glass-orders-card" icon={Receipt} title="Pedidos" subtitle={subtitle}
+      actions={<Segmented label="Qué pedidos ver" value={scope} onChange={switchScope} options={[{ value: "work", label: "En curso", icon: Tray }, { value: "history", label: "Historial", icon: ClockCounterClockwise }]} />}>
+      <div className="orders-bar">
+        <div className="orders-bar-search"><Search value={q} onChange={v => filter(() => setQ(v))} label="Buscar por número, cliente, correo o teléfono" /></div>
+        {view === "list" && <label className="orders-bar-select"><span className="sr-only">Etapa</span>
+          <select className="glass-field" value={stage} onChange={e => filter(() => setStage(e.target.value))}>
+            <option value="">{history ? "Todo el historial" : "Todas las etapas"} ({count(total)})</option>
+            {!history && inProgress > 0 && inProgress !== total && <option value={IN_PROGRESS}>Por atender ({count(inProgress)})</option>}
+            {stageOptions.map(s => <option key={s} value={s}>{STAGE[s].label} ({count(counts[s] ?? 0)})</option>)}
+          </select>
+        </label>}
+        {view === "board" && <label className="orders-bar-select"><span className="sr-only">Entrega</span>
+          <select className="glass-field" value={method} onChange={e => setMethod(e.target.value as DeliveryMethod | "")}>
+            <option value="">Todos los métodos</option>{(Object.keys(METHOD) as DeliveryMethod[]).map(m => <option key={m} value={m}>{METHOD[m].label}</option>)}
+          </select>
+        </label>}
+        {view === "list" && <details className="orders-bar-dates" name="orders-popovers">
+          <summary data-active={dated || undefined}><CalendarBlank size={16} aria-hidden="true" /><span>{dated ? [from, to].filter(Boolean).join(" → ") : "Fechas"}</span><CaretDown size={14} aria-hidden="true" /></summary>
+          <div className="orders-bar-popover glass-dates">
+            <label className="glass-label">Desde<input type="date" className="glass-field" value={from} max={to || undefined} onChange={e => filter(() => setFrom(e.target.value))} /></label>
+            <label className="glass-label">Hasta<input type="date" className="glass-field" value={to} min={from || undefined} onChange={e => filter(() => setTo(e.target.value))} /></label>
           </div>
         </details>}
-        <details name="orders-popovers" className="orders-filter-disclosure">
-          <summary><SlidersHorizontal size={16} aria-hidden="true" /><span>Filtros</span>{hasFilters && <span className="orders-filter-count">{plural(activeFilters, "activo", "activos")}</span>}<CaretDown size={16} aria-hidden="true" className="orders-filter-chevron" /></summary>
-          <div className="glass-filters orders-filter-row">
-          <div className="orders-search"><span className="orders-filter-label">Buscar pedido</span><Search value={q} onChange={v => filter(() => setQ(v))} label="Buscar por número, cliente, correo o teléfono" /></div>
-          <label className="orders-select-label"><span className="orders-filter-label">{view === "list" ? "Etapa" : "Entrega"}</span>
-            {view === "list" ? <select className="glass-field orders-select" value={stage} onChange={e => filter(() => setStage(e.target.value))}>
-              <option value="">Todos ({count(total)})</option><option value={IN_PROGRESS}>En curso ({count(inProgress)})</option>
-              {STAGES.map(s => <option key={s} value={s}>{STAGE[s].label} ({count(counts[s] ?? 0)})</option>)}
-            </select> : <select className="glass-field orders-select" value={method} onChange={e => setMethod(e.target.value as DeliveryMethod | "")}>
-              <option value="">Todos los métodos</option>{(Object.keys(METHOD) as DeliveryMethod[]).map(m => <option key={m} value={m}>{METHOD[m].label}</option>)}
-            </select>}
-          </label>
-          {view === "list" && <div className="glass-dates"><label className="glass-label">Desde<input type="date" className="glass-field" value={from} max={to || undefined} onChange={e => filter(() => setFrom(e.target.value))} /></label><label className="glass-label">Hasta<input type="date" className="glass-field" value={to} min={from || undefined} onChange={e => filter(() => setTo(e.target.value))} /></label></div>}
-          </div>
-        </details>
+        {!history && <Segmented label="Vista" value={view} onChange={switchView} options={[{ value: "list", label: "Lista", icon: ListBullets }, { value: "board", label: "Tablero", icon: Kanban }]} />}
+        {hasFilters && <button type="button" className="glass-chip" onClick={() => filter(() => { setStage(""); setFrom(""); setTo(""); setQ(""); setMethod("") })}><X size={14} aria-hidden="true" />Limpiar</button>}
       </div>
-      </div>
-      <div className="orders-results mt-4">{view === "board"
+      <div className="orders-results mt-4">{view === "board" && !history
         ? <Async state={board} label="Cargando tablero" rows={4}>{b => <OrdersBoard board={b} onShowAll={s => { setView("list"); filter(() => setStage(s)) }} />}</Async>
-        : <Async state={orders} label="Cargando pedidos" rows={6} empty={{ icon: Receipt, title: "No hay pedidos con estos filtros", hint: "Cambia la etapa o el rango de fechas.", when: d => d.items.length === 0 }}>{d => <>
+        : <Async state={orders} label="Cargando pedidos" rows={6} empty={{ icon: history ? ClockCounterClockwise : Receipt,
+            title: q.trim() ? "No hay pedidos con esta búsqueda" : stage ? `No hay pedidos ${STAGE_EMPTY[stage] ?? "aquí"}` : history ? "El historial está vacío" : "No hay pedidos por atender",
+            hint: history ? "Aquí quedan los pedidos finalizados, los cancelados y los de la tienda anterior." : "Los pedidos nuevos aparecen aquí. Los finalizados y los de la tienda anterior están en Historial.", when: d => d.items.length === 0 }}>{d => <>
+          <OrdersList rows={d.items} history={history} onOpen={o => openOrder(o.id)}
+            selection={!history && (can("ORDERS_MANAGE") || can("FULFILLMENT_MANAGE")) ? { selected, onToggle: id => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n }), onToggleAll: () => setSelected(s => { const n = new Set(s); rows.forEach(r => allOnPage ? n.delete(r.id) : n.add(r.id)); return n }) } : undefined} />
           <Pager offset={offset} total={d.total} onChange={o => { setOffset(o); setSelected(new Set()) }} />
-          <DataTable caption="Pedidos" rows={d.items} columns={COLUMNS} onOpen={o => openOrder(o.id)}
-            selection={can("ORDERS_MANAGE") || can("FULFILLMENT_MANAGE") ? { selected, onToggle: id => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n }), label: id => `Seleccionar pedido ${rows.find(r => r.id === id)?.number ?? ""}`, onToggleAll: () => setSelected(s => { const n = new Set(s); rows.forEach(r => allOnPage ? n.delete(r.id) : n.add(r.id)); return n }) } : undefined} />
         </>}</Async>}</div>
     </Card>
     {selected.size > 0 && view === "list" && <div className="glass-bulk" role="region" aria-label="Acciones en lote">

@@ -64,7 +64,7 @@ function UserDialog({ user, onClose, onSaved }: { user: PanelUser | null; onClos
       {secret ? <TemporaryPassword result={secret} /> : <form id="user-form" onSubmit={save} className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="glass-label">Nombre<input className="glass-field" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej. Laura Gómez" autoFocus={!current} /></label>
-          <label className="glass-label">Correo<input className="glass-field" type="email" required disabled={!!current} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="laura@arisma.com.co" /></label>
+          <label className="glass-label">Correo<input className="glass-field" type="email" required disabled={!!current} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="laura@tutienda.com" /></label>
         </div>
         <div className="grid gap-2"><span className="text-sm font-semibold">Rol</span>
           <Segmented label="Rol" value={form.role} onChange={v => setForm({ ...form, role: v })} options={ROLES.map(r => ({ value: r.value, label: r.label, icon: r.value === "admin" ? ShieldCheck : UserCircle }))} />

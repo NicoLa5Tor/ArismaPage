@@ -62,6 +62,28 @@ public class OrderService {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void changeStatusAlone(UUID id, OrderStatus next, String note, UUID actor) { changeStatus(id, next, note, actor); }
 
+    /** A payment arrived for an order that is no longer waiting for one (cancelled when its time ran out): leave a visible trace for the team. */
+    @Transactional
+    public void flagLatePayment(UUID id, String reference) {
+        var order = orders.lock(id).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        orders.recordHistory(id, order.status(), order.status(), null, "Llegó un pago aprobado (" + reference + ") con el pedido " + order.status().label() + ". Revisar y reactivar o devolver.");
+    }
+
+    /** A migrated order that still needs attention comes back to the work list, or goes back to the history. */
+    @Transactional
+    public void keepActive(UUID id, boolean active, UUID actor) {
+        var order = orders.lock(id).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        orders.keepActive(id, active);
+        orders.recordHistory(id, order.status(), order.status(), actor, active ? "Se trajo de vuelta a la lista de pedidos" : "Se envió al historial");
+    }
+
+    /** Something that happened to the order without changing its status (an invoice sent, for example), kept in its history. */
+    @Transactional
+    public void logEvent(UUID id, String note, UUID actor) {
+        var order = orders.lock(id).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        orders.recordHistory(id, order.status(), order.status(), actor, note);
+    }
+
     @Transactional
     public Map<String, Object> addNote(UUID id, String body, UUID actor) {
         if (body == null || body.isBlank() || body.length() > MAX_NOTE) throw new IllegalArgumentException("Escribe una nota de máximo 4.000 caracteres");

@@ -1,0 +1,217 @@
+/* Barra única de la tienda, buscador con sugerencias, explorador de categorías y encabezado compacto del catálogo.
+   Va después de tienda.css: reemplaza la cabecera vieja de las páginas internas. */
+@layer components {
+  /* Barra: logo, categorías, buscador y carrito. En celular el buscador va en su propia fila y es lo que queda pegado
+     arriba al bajar (la fila del logo se esconde sola con un top negativo, sin escuchar el scroll). */
+  .store-bar { @apply sticky z-30 border border-x-0 border-t-0 border-stone-200 bg-stone-100/95 backdrop-blur; top: -3.5rem; padding-top: env(safe-area-inset-top); padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right)); color: var(--ink); }
+  @media (width >= 40rem) { .store-bar { padding-inline: max(2rem, env(safe-area-inset-left)) max(2rem, env(safe-area-inset-right)); } }
+  @media (width >= 64rem) { .store-bar { top: 0; } }
+  .store-bar-row { @apply mx-auto grid max-w-7xl items-center gap-x-2; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-rows: 3.5rem 3.5rem; grid-template-areas: "brand . actions actions" "search search search cats"; }
+  @media (width >= 64rem) { .store-bar-row { @apply gap-x-4; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-rows: 4rem; grid-template-areas: "brand cats search actions"; } }
+  .store-bar-brand { grid-area: brand; @apply justify-self-start rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .store-bar-brand img { @apply h-10 w-auto rounded-lg; }
+  .store-bar-actions { grid-area: actions; @apply flex items-center gap-2 justify-self-end; }
+  .store-bar-search { grid-area: search; @apply min-w-0; }
+  @media (width >= 64rem) { .store-bar-search { @apply w-full max-w-2xl justify-self-center; } }
+  .store-bar-categories { grid-area: cats; @apply inline-flex size-12 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-neutral-900 text-sm font-semibold text-white transition-colors duration-300 hover:bg-neutral-700 active:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 lg:h-11 lg:w-auto lg:rounded-full lg:px-4; outline-color: var(--brand-pink-strong); }
+  .store-bar-categories svg:first-child { color: var(--tone-orange); }
+  .store-bar-categories-label, .store-bar-categories-caret { @apply hidden lg:inline; }
+  .store-bar-categories-caret { transition: rotate 300ms var(--ease-out); }
+  .store-bar-categories[aria-expanded="true"] .store-bar-categories-caret { rotate: 180deg; }
+
+  /* El menú va siempre en la barra; en escritorio con su nombre */
+  .store-bar .menu-button { @apply grid lg:inline-flex lg:w-auto lg:items-center lg:gap-2 lg:px-4 lg:text-sm lg:font-semibold; }
+  .menu-button-label { @apply hidden; }
+  .store-bar .menu-button-label { @apply lg:inline; }
+
+  /* Buscador */
+  .store-search { @apply relative; }
+  .search-field { @apply flex h-12 items-center gap-2 rounded-2xl border border-stone-200 bg-white pr-2 pl-4 text-neutral-500 shadow-sm transition-shadow duration-200 focus-within:shadow-md focus-within:ring-2 lg:h-11; --tw-ring-color: var(--brand-pink-strong); }
+  .search-field-icon { @apply shrink-0; }
+  .search-field input { @apply h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400; color: var(--ink); }
+  .search-field input::-webkit-search-cancel-button { appearance: none; }
+  .search-clear { @apply grid size-10 shrink-0 cursor-pointer place-items-center rounded-full transition-colors hover:bg-stone-100 focus-visible:outline-2; outline-color: var(--brand-pink-strong); }
+  .search-kbd { @apply hidden h-6 min-w-6 shrink-0 items-center justify-center rounded-md border border-stone-200 bg-stone-50 px-2 font-sans text-xs font-medium text-neutral-500; }
+  .search-shortcut { @apply mr-2; }
+  @media (hover: hover) and (pointer: fine) { .search-kbd { @apply inline-flex; } }
+
+  .search-panel { @apply absolute inset-x-0 top-full z-40 mt-2 overflow-y-auto overscroll-contain rounded-3xl border border-stone-200 bg-white p-2 shadow-2xl; max-height: min(36rem, calc(100dvh - 8rem)); color: var(--ink); }
+  .search-list { @apply flex flex-col; }
+  .search-group { @apply px-2 pt-4 pb-2 text-xs font-semibold tracking-widest text-neutral-500 uppercase first:pt-2; }
+  .search-option { @apply flex min-h-11 cursor-pointer items-center gap-4 rounded-2xl px-2 py-2 text-sm transition-colors duration-150; }
+  .search-option[aria-selected="true"] { @apply bg-stone-100; }
+  .search-option-icon { @apply shrink-0 text-neutral-400; }
+  .search-option-icon.is-ask { color: var(--tone-orange); }
+  .search-option-text { @apply flex min-w-0 flex-1 flex-col; }
+  .search-option-title { @apply truncate font-medium; }
+  .search-option-meta { @apply text-xs text-neutral-500 tabular-nums; }
+  .search-option-go { @apply shrink-0 text-neutral-400 opacity-0 transition-opacity duration-150; }
+  .search-option[aria-selected="true"] .search-option-go { @apply opacity-100; }
+  .search-thumb { @apply grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-stone-200 bg-white text-stone-400; }
+  .search-thumb img { @apply size-full object-contain p-1; }
+  .search-cat-icon { @apply grid size-12 shrink-0 place-items-center rounded-xl; background: var(--tone); color: var(--on-tone); }
+  .search-option.is-all { @apply mt-2 font-semibold; }
+  .search-option.is-ask { @apply text-neutral-600; }
+  .search-forget { @apply -mr-2 grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-neutral-400 transition-colors hover:bg-stone-200 hover:text-neutral-700; }
+  .search-chips-row { @apply px-2 pb-2; }
+  .search-chips { @apply flex flex-wrap gap-2; }
+  .search-option.search-chip { @apply min-h-11 gap-2 rounded-full border border-stone-200 px-4 py-0 font-medium; }
+  .search-option.search-chip svg { color: var(--brand-pink-strong); }
+  .search-option.search-chip[aria-selected="true"] { @apply border-stone-300; }
+  .search-loading { @apply flex flex-col gap-2 p-2; }
+  .search-skeleton { @apply block h-12 animate-pulse rounded-2xl bg-stone-100; }
+  .search-empty { @apply px-2 py-4 text-sm text-neutral-600; }
+  .search-corrected { @apply px-2 pt-2 text-xs text-neutral-500; }
+  .search-scrim { @apply fixed inset-0 z-20 bg-neutral-950/30; }
+
+  /* Lupa de la cabecera flotante de la home: aparece solo después del hero */
+  .search-launcher { @apply inline-flex h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold transition-colors duration-300 hover:bg-stone-100 active:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 lg:px-4; color: var(--ink, #1d1a23); outline-color: var(--brand-pink-strong); }
+  .search-launcher-label { @apply hidden lg:inline; }
+  .storefront-header[data-state="top"] .header-search { @apply hidden; }
+  .search-launch-root { @apply fixed inset-0 z-50 bg-transparent; }
+  .search-launch-backdrop { @apply absolute inset-0 cursor-default bg-neutral-950/20; }
+  .search-launch { @apply absolute inset-x-2 mx-auto flex max-w-2xl items-start gap-2 rounded-3xl bg-stone-100 p-2 shadow-2xl; top: max(0.5rem, env(safe-area-inset-top)); color: var(--ink); }
+  .search-launch .store-search { @apply flex-1; }
+  .search-launch[data-spot="header"] { @apply mx-0 max-w-none bg-white; }
+  .search-launch[data-spot="header"] .search-panel { @apply mx-auto max-w-3xl; }
+  /* While the box grows over the header, the header's pieces slide toward the middle and fade under it. */
+  .storefront-header .brand, .storefront-header > nav { transition: translate 500ms var(--ease-out), scale 500ms var(--ease-out), opacity 300ms var(--ease-out); }
+  .storefront-header[data-searching] { translate: 0 0; }
+  .storefront-header[data-searching] .brand { translate: 4rem 0; scale: 0.9; opacity: 0; }
+  .storefront-header[data-searching] > nav { translate: -4rem 0; scale: 0.9; opacity: 0; }
+  .search-launch-close { @apply grid size-12 shrink-0 cursor-pointer place-items-center rounded-2xl transition-colors hover:bg-white focus-visible:outline-2; outline-color: var(--brand-pink-strong); }
+
+  /* Explorador de categorías: pantalla completa en celular, panel ancho bajo la barra en escritorio */
+  .explorer-root { @apply fixed inset-0 z-50; }
+  .explorer-backdrop { @apply absolute inset-0 cursor-default bg-neutral-950/40 backdrop-blur-sm; }
+  .explorer { @apply absolute inset-0 flex flex-col overflow-hidden bg-stone-100; color: var(--ink); }
+  @media (width >= 64rem) { .explorer { @apply inset-x-8 top-20 bottom-auto mx-auto max-w-6xl rounded-3xl shadow-2xl; max-height: calc(100dvh - 7rem); } }
+  .explorer-eyebrow { @apply px-2 pb-2 text-xs font-semibold tracking-widest text-neutral-500 uppercase; }
+  .explorer-close { @apply absolute top-4 right-4 z-10 grid size-11 cursor-pointer place-items-center rounded-full bg-white/90 shadow-sm transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); color: var(--ink); }
+
+  .explorer-desk { @apply relative flex min-h-0 flex-1; }
+  .explorer-list { @apply flex w-80 shrink-0 flex-col overflow-y-auto bg-white p-4; }
+  .explorer-list ul { @apply flex flex-col gap-1; }
+  .explorer-item { @apply flex min-h-12 w-full cursor-pointer items-center gap-2 rounded-2xl px-2 text-left text-sm font-medium transition-colors duration-200 hover:bg-stone-100 focus-visible:outline-2 focus-visible:-outline-offset-2; outline-color: var(--tone); }
+  .explorer-item[aria-current="true"] { @apply bg-stone-100 font-semibold; }
+  .explorer-item-icon { @apply grid size-8 shrink-0 place-items-center rounded-xl; background: var(--tone); color: var(--on-tone); }
+  .explorer-item-name { @apply min-w-0 flex-1 truncate; }
+  .explorer-item-count { @apply text-xs font-medium text-neutral-400 tabular-nums; }
+  .explorer-item-caret { @apply shrink-0 text-neutral-400 opacity-0; transition: opacity 200ms, translate 300ms var(--ease-out); translate: -0.25rem 0; }
+  .explorer-item[aria-current="true"] .explorer-item-caret { @apply opacity-100; translate: 0 0; }
+
+  .explorer-stage { @apply flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4; }
+  .explorer-photo { @apply relative isolate flex h-72 shrink-0 items-end overflow-hidden rounded-3xl bg-neutral-800; }
+  .explorer-photo-image { @apply absolute inset-0 -z-10 size-full object-cover; object-position: 65% center; }
+  .explorer-photo-shade { @apply absolute inset-0 -z-10 bg-neutral-950/40; }
+  .explorer-photo-copy { @apply flex max-w-lg flex-col gap-2 p-8 text-white; }
+  .explorer-photo-copy h2 { @apply text-3xl leading-tight font-semibold; }
+  .explorer-photo-copy p { @apply text-base text-white/85; }
+  .explorer-cta { @apply mt-2 inline-flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold transition-colors duration-300 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white; color: var(--ink); }
+  .explorer-cta svg { transition: translate 300ms var(--ease-out); }
+  .explorer-cta:hover svg { translate: 0.25rem 0; }
+  .explorer-subs { @apply flex flex-col; }
+  .explorer-subs ul { @apply flex flex-wrap gap-2; }
+  .explorer-chip { @apply inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-stone-200 bg-white px-4 text-sm font-medium transition-colors duration-200 hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--tone); }
+  .explorer-chip[aria-current="true"] { @apply border-transparent font-semibold; background: var(--tone); color: var(--on-tone); }
+  .explorer-chip-count { @apply text-xs font-medium text-neutral-400 tabular-nums; }
+  .explorer-chip[aria-current="true"] .explorer-chip-count { color: inherit; }
+
+  .explorer-phone { @apply flex h-full min-h-0 flex-col; }
+  .explorer-head { @apply flex h-16 shrink-0 items-center justify-between px-4; margin-top: env(safe-area-inset-top); }
+  .explorer-head-title { @apply px-2 text-xl font-semibold; }
+  .explorer-back { @apply inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-2 text-base font-semibold transition-colors hover:bg-white focus-visible:outline-2; outline-color: var(--brand-pink-strong); }
+  .explorer-phone .explorer-close { @apply static bg-white; }
+  .explorer-scroll { @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-2; padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
+  .explorer-cards { @apply grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4; }
+  .explorer-cards .is-wide { @apply col-span-2 sm:col-span-3; }
+  .explorer-card { @apply relative block aspect-4/3 w-full cursor-pointer overflow-hidden rounded-3xl bg-stone-200 text-left focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--tone); }
+  .explorer-cards .is-wide .explorer-card { @apply aspect-video sm:aspect-3/1; }
+  .explorer-card[aria-current="true"] { @apply outline-2 outline-offset-2; }
+  .explorer-card img { @apply size-full object-cover; object-position: 65% center; }
+  .explorer-card-fallback { @apply grid size-full place-items-center; color: var(--tone); }
+  .explorer-card-label { @apply absolute inset-x-2 bottom-2 flex items-center gap-2 rounded-2xl bg-white/95 p-2 shadow-sm backdrop-blur; }
+  .explorer-card-label svg { @apply size-8 shrink-0 rounded-xl p-2; background: var(--tone); color: var(--on-tone); }
+  .explorer-card-name { @apply line-clamp-2 min-w-0 flex-1 text-xs leading-tight font-semibold sm:text-sm; color: var(--ink); }
+  .explorer-card-count { @apply hidden text-xs font-medium text-neutral-500 tabular-nums sm:inline; }
+
+  .explorer-detail { @apply flex flex-col gap-4; }
+  .explorer-detail-photo { @apply h-48 overflow-hidden rounded-3xl bg-stone-200 sm:h-64; }
+  .explorer-detail-photo img { @apply size-full object-cover; object-position: 65% center; }
+  .explorer-detail-copy { @apply flex flex-col gap-4; }
+  .explorer-detail-copy h2 { @apply flex items-center gap-2 text-2xl font-semibold; }
+  .explorer-detail-copy p { @apply text-base text-neutral-600; }
+  .explorer-detail .explorer-cta { @apply mt-0 min-h-12 w-full justify-center bg-neutral-900 text-base text-white hover:bg-neutral-700; outline-color: var(--brand-pink-strong); }
+  .explorer-rows { @apply flex flex-col gap-2; }
+  .explorer-row { @apply flex min-h-14 w-full cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 text-left text-base font-medium transition-colors hover:bg-stone-50 active:bg-stone-200 focus-visible:outline-2 focus-visible:-outline-offset-2; outline-color: var(--tone); }
+  .explorer-row[aria-current="true"] { @apply font-semibold ring-2; --tw-ring-color: var(--tone); }
+  .explorer-row-name { @apply min-w-0 flex-1; }
+  .explorer-row svg { @apply shrink-0 text-neutral-400; }
+
+  /* Encabezado compacto del catálogo */
+  .catalog-top { @apply gap-0 pt-8 sm:pt-12; }
+  .catalog-heading { @apply flex flex-wrap items-center gap-4 sm:flex-nowrap; }
+  .catalog-heading-badge { @apply grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white ring-2 ring-offset-2 ring-offset-stone-100 sm:size-20; --tw-ring-color: var(--tone); color: var(--tone); }
+  .catalog-heading-badge img { @apply size-full object-cover; object-position: 65% center; }
+  .catalog-heading-copy { @apply flex min-w-0 flex-1 flex-col gap-1; }
+  .catalog-crumbs ol { @apply flex flex-wrap items-center gap-x-1 text-sm text-neutral-500; }
+  .catalog-crumbs li { @apply inline-flex items-center gap-1; }
+  .catalog-crumbs button { @apply -my-2 inline-flex min-h-11 cursor-pointer items-center rounded underline-offset-4 transition-colors hover:text-neutral-900 hover:underline focus-visible:outline-2; outline-color: var(--brand-pink-strong); }
+  .catalog-crumbs [aria-current="page"] { @apply font-medium text-neutral-700; }
+  .catalog-heading h1 { @apply text-2xl leading-tight font-semibold sm:text-4xl; overflow-wrap: anywhere; }
+  .catalog-heading-lead { @apply text-sm text-neutral-600 sm:text-base; }
+  .catalog-heading-count { @apply font-semibold tabular-nums; color: var(--ink); }
+  .catalog-heading-explore { @apply hidden min-h-14 shrink-0 lg:inline-flex cursor-pointer items-center gap-4 rounded-full border border-stone-200 bg-white py-2 pr-4 pl-2 text-sm font-semibold transition-shadow duration-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); color: var(--ink); }
+  .catalog-heading-explore > span:nth-child(2) { @apply flex-1; }
+  .catalog-heading-stack { @apply flex; }
+  .catalog-heading-stack img { @apply size-10 rounded-full object-cover ring-2 ring-white; margin-left: -1rem; transition: margin 300ms var(--ease-out); }
+  .catalog-heading-stack img:first-child { margin-left: 0; }
+  .catalog-heading-explore:hover .catalog-heading-stack img:not(:first-child) { margin-left: -0.5rem; }
+
+  /* Chips de categorías: solo celular y tablet (en escritorio está la barra lateral), pegados bajo el buscador */
+  .category-tabs { @apply mt-4 lg:hidden; top: calc(3.5rem + env(safe-area-inset-top)); }
+  .category-tab.is-explore { @apply bg-neutral-900 font-semibold text-white hover:text-white; }
+  .category-tab.is-explore svg { color: var(--tone-orange); }
+
+  .catalog-body { @apply scroll-mt-32 lg:scroll-mt-24; }
+  .catalog-aside { @apply lg:top-24; }
+  @media (width >= 64rem) { .catalog-aside { max-height: calc(100svh - 7rem); } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront-header[data-searching] .brand, .storefront-header[data-searching] > nav { translate: 0 0; scale: 1; }
+  .store-bar-categories-caret, .explorer-item-caret, .explorer-cta svg, .catalog-heading-stack img { transition: none; }
+}
+
+@supports (corner-shape: squircle) {
+  .storefront .search-panel, .storefront .explorer-photo, .storefront .explorer-card { border-radius: 2.5rem; }
+  .storefront .search-field, .storefront .search-launch, .storefront .explorer-card-label, .storefront .catalog-heading-badge { border-radius: 2rem; }
+  @media (width >= 64rem) { .storefront .explorer { border-radius: 2.5rem; } }
+}
+
+/* Cloudflare Turnstile: invisible unless Cloudflare asks for a click; then it sits in the form, above the button. */
+@layer components {
+  .human-check { @apply flex flex-col gap-2; }
+  .human-check:has(iframe) { @apply min-h-16; }
+  .human-check-error { @apply text-sm font-medium; color: var(--brand-pink-strong, #d40e40); }
+}
+
+/* The store menu: a small dropdown under its button. No backdrop, no scroll lock: the page stays as it is. */
+@layer components {
+  /* The menu exists only where its button shows. The home header hides both on wide screens, where its links are in view. */
+  .store-menu { @apply relative shrink-0 lg:hidden; }
+  .store-bar .store-menu { @apply lg:block; }
+  .menu-button-caret { @apply hidden text-neutral-500 transition-transform duration-300; }
+  .store-bar .menu-button-caret { @apply lg:block; }
+  .menu-button[aria-expanded="true"] { @apply bg-stone-100; }
+  .menu-button[aria-expanded="true"] .menu-button-caret { @apply rotate-180; }
+  .store-menu-panel { @apply absolute top-full right-0 z-50 mt-2 flex w-64 flex-col gap-1 rounded-3xl border border-stone-200 bg-white p-2 shadow-xl; max-width: calc(100vw - 2rem); transform-origin: top right; color: var(--ink, #1d1a23); }
+  .store-menu-panel ul { @apply flex flex-col gap-1; }
+  .store-menu-panel .store-menu-item { @apply flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold whitespace-nowrap no-underline transition-colors duration-200 hover:bg-stone-100 active:bg-stone-200 focus-visible:outline-2 focus-visible:-outline-offset-2; color: inherit; outline-color: var(--brand-pink-strong); }
+  .store-menu-icon { @apply shrink-0; color: var(--brand-pink-strong); }
+  .store-menu-panel .store-menu-item[aria-current="page"] { @apply bg-stone-100; }
+  .store-menu-panel .store-menu-item.is-whatsapp { @apply mt-1 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:bg-emerald-200; }
+  .store-menu-item.is-whatsapp .store-menu-icon { @apply text-emerald-600; }
+  .storefront .store-menu-panel { border-radius: 1.75rem; }
+  @media (prefers-reduced-motion: reduce) { .menu-button-caret { @apply transition-none; } }
+}

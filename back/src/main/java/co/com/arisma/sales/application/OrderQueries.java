@@ -11,9 +11,13 @@ import java.util.UUID;
 /** Read side of orders. */
 public interface OrderQueries {
     /** Stages of the order journey (see V9 v_order_stage): payment and delivery seen as one. */
-    java.util.Set<String> STAGES = java.util.Set.of("unpaid", "to_prepare", "packed", "shipped", "delivered", "issue", "cancelled");
-    /** stage: comma-separated stages (e.g. "to_prepare,packed"), or blank for all. */
-    record Filter(OrderStatus status, DateWindow window, String query, String stage) {
+    java.util.Set<String> STAGES = java.util.Set.of("unpaid", "to_prepare", "packed", "shipped", "to_invoice", "delivered", "issue", "cancelled");
+    /**
+     * stage: comma-separated stages (e.g. "to_prepare,packed"), or blank for all. history: the finished, cancelled and
+     * migrated orders instead of the ones the store still works on.
+     */
+    record Filter(OrderStatus status, DateWindow window, String query, String stage, boolean history) {
+        public Filter(OrderStatus status, DateWindow window, String query, String stage) { this(status, window, query, stage, false); }
         public Filter {
             if (stage != null && !stage.isBlank() && !java.util.Arrays.stream(stage.split(",")).allMatch(STAGES::contains)) throw new IllegalArgumentException("Etapa de pedido inválida");
         }

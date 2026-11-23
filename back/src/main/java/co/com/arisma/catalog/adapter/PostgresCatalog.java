@@ -1,6 +1,6 @@
 package co.com.arisma.catalog.adapter;
 import co.com.arisma.catalog.application.ProductRepository;
-import co.com.arisma.catalog.domain.Pricing;
+import co.com.arisma.shared.domain.Pricing;
 import co.com.arisma.catalog.domain.Product;
 import co.com.arisma.shared.adapter.Jdbc;
 import jakarta.enterprise.context.ApplicationScoped;

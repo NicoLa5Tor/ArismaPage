@@ -53,7 +53,7 @@ public class PostgresShipments implements ShipmentRepository, FulfillmentQueries
         + "fl.product_id,cv.image_id,cv.original_url AS image_url,cv.uploaded AS image_uploaded"
         + ",sg.stage FROM v_delivery s JOIN sales_order o ON o.id=s.order_id JOIN v_order_stage sg ON sg.order_id=o.id LEFT JOIN customer c ON c.id=o.customer_id LEFT JOIN admin_user u ON u.id=s.courier_user_id"
         + " LEFT JOIN LATERAL (SELECT l.product_id FROM order_line l WHERE l.order_id=o.id AND l.product_id IS NOT NULL ORDER BY l.total DESC LIMIT 1) fl ON true LEFT JOIN v_product_cover cv ON cv.product_id=fl.product_id"
-        + " WHERE sg.stage IN ('to_prepare','packed','shipped','issue') AND (?='' OR s.method=?) AND (?='' OR o.number=? OR (c.first_name||' '||c.last_name) ILIKE ? OR COALESCE(o.shipping->>'city',o.billing->>'city') ILIKE ? OR s.tracking_code=?)";
+        + " WHERE sg.stage IN ('to_prepare','packed','shipped','issue') AND NOT sg.in_history AND (?='' OR s.method=?) AND (?='' OR o.number=? OR (c.first_name||' '||c.last_name) ILIKE ? OR COALESCE(o.shipping->>'city',o.billing->>'city') ILIKE ? OR s.tracking_code=?)";
     /** Open deliveries of paid (or cash-on-delivery) orders per column, oldest first (they have waited longest), capped per column; counts are exact. */
     public Map<String,Object> board(DeliveryMethod method, String query, int staleDays) {
         String m = method == null ? "" : method.db(), q = query == null ? "" : query.trim(), like = "%"+q+"%";
@@ -61,7 +61,7 @@ public class PostgresShipments implements ShipmentRepository, FulfillmentQueries
             var cards = Jdbc.list(c,"SELECT * FROM (SELECT x.*,row_number() OVER (PARTITION BY x.stage ORDER BY x.placed_at) AS rn FROM ("+CARD+") x) y WHERE rn<=40 ORDER BY placed_at",m,m,q,q,like,like,q);
             var counts = new LinkedHashMap<String,Long>();
             for (var r : Jdbc.list(c,"SELECT x.stage,count(*) AS n FROM ("+CARD+") x GROUP BY x.stage",m,m,q,q,like,like,q)) counts.put((String)r.get("stage"),((Number)r.get("n")).longValue());
-            long stale = Jdbc.count(c,"SELECT count(*) FROM v_order_stage sg JOIN sales_order o ON o.id=sg.order_id WHERE sg.stage IN ('to_prepare','packed') AND o.status IN "+PAID+" AND o.placed_at<now()-make_interval(days=>?)",staleDays);
+            long stale = Jdbc.count(c,"SELECT count(*) FROM v_order_stage sg JOIN sales_order o ON o.id=sg.order_id WHERE sg.stage IN ('to_prepare','packed') AND NOT sg.in_history AND o.status IN "+PAID+" AND o.placed_at<now()-make_interval(days=>?)",staleDays);
             var out = new LinkedHashMap<String,Object>(); out.put("cards",cards); out.put("counts",counts); out.put("stale",stale); out.put("staleDays",staleDays);
             out.put("deliveredToday",Jdbc.count(c,"SELECT count(*) FROM shipment WHERE status='delivered' AND delivered_at>=date_trunc('day',now() AT TIME ZONE 'America/Bogota') AT TIME ZONE 'America/Bogota'"));
             return out;
@@ -74,6 +74,7 @@ public class PostgresShipments implements ShipmentRepository, FulfillmentQueries
                 + "o.status IN "+PAID+" AS paid,o.payment_method='cod' AS cash_on_delivery FROM sales_order o JOIN v_delivery d ON d.order_id=o.id LEFT JOIN shipment s ON s.order_id=o.id LEFT JOIN admin_user u ON u.id=s.courier_user_id LEFT JOIN admin_user b ON b.id=s.updated_by WHERE o.id=?",orderId);
             if (found.isEmpty()) return Optional.<Map<String,Object>>empty();
             var out = new LinkedHashMap<>(found.get());
+            out.put("tracking",out.get("id")==null?null:PostgresTracking.view(c,(UUID)out.get("id")));
             out.put("events",out.get("id")==null?List.of():Jdbc.list(c,"SELECT e.id,e.from_status,e.to_status,e.note,e.created_at,a.name AS actor FROM shipment_event e LEFT JOIN admin_user a ON a.id=e.actor_id WHERE e.shipment_id=? ORDER BY e.created_at DESC",out.get("id")));
             return Optional.<Map<String,Object>>of(out);
         });

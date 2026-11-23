@@ -5,14 +5,20 @@ import { Archive, Eye, FileDashed, ImageSquare, MagnifyingGlass, Sparkle, Tag, X
 import type { Backorders, Category, Product, ProductImage, ProductStatus, StockStatus, TaxRate } from "../domain/catalog"
 import { withoutTax, withTax } from "../domain/pricing"
 import { slugify } from "../domain/gallery"
+import { type AgeDraft, type ProductSearchProfile, ageDraft, ageError, ageLabel, toProfile } from "../domain/search-profile"
 import { count, money, plural } from "../../shared/ui/format"
 import { Badge, Dialog, Failure, Loading, type Tone } from "../../shared/ui/parts"
 import { Segmented, Stepper, Switch, TabPanel, Tabs, Thumb, useMedia } from "../../shared/ui/rich"
 import { useCan, useSession } from "../../shared/ui/admin-context"
 import { ProductGallery, QueuedGallery } from "./product-gallery"
+import { AgeRange, KeywordInput } from "./search-fields"
+import { cleanPage, emptyPage, pageError } from "../domain/product-page"
+import { PageFields, type PageDraft } from "./page-fields"
 import { useCatalogPort } from "./use-catalog"
 
-type Tab = "general" | "price" | "stock" | "categories"
+type Tab = "general" | "price" | "stock" | "categories" | "page" | "search"
+const noPage: PageDraft = { shortDescription: "", descriptionHtml: "", highlights: [], specs: [], sections: {} }
+const noAge: AgeDraft = { ageMin: "", ageMax: "" }
 type PriceField = { base: string; gross: string }
 const emptyPrice: PriceField = { base: "", gross: "" }
 const blank = { title: "", slug: "", status: "DRAFT" as ProductStatus, sku: "", taxRateId: "", regular: emptyPrice, onSale: false, sale: emptyPrice, saleStartsAt: "", saleEndsAt: "", manageStock: false, stockQuantity: "", stockStatus: "INSTOCK" as StockStatus, backorders: "NO" as Backorders, quoteOnly: false, hidePrice: false, featured: false, stockReason: "" }
@@ -29,8 +35,10 @@ function fromProduct(p: Product): Form {
     manageStock: p.manageStock, stockQuantity: p.stockQuantity?.toString() ?? "", stockStatus: p.stockStatus, backorders: p.backorders, quoteOnly: p.quoteOnly, hidePrice: p.hidePrice, featured: p.featured, stockReason: "" }
 }
 /** Field errors grouped by tab, so the tab shows a dot and saving jumps to the first problem. */
-function validate(f: Form, initialStock: string): Partial<Record<keyof Form | "price", string>> {
-  const e: Partial<Record<keyof Form | "price", string>> = {}
+function validate(f: Form, initialStock: string, age: AgeDraft): Partial<Record<keyof Form | "price" | "age", string>> {
+  const e: Partial<Record<keyof Form | "price" | "age", string>> = {}
+  const wrongAge = ageError(age)
+  if (wrongAge) e.age = wrongAge
   if (!f.title.trim()) e.title = "Escribe el nombre del producto"
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(f.slug)) e.slug = "Solo minúsculas, números y guiones (ej. tablero-mini-arco)"
   if (f.status === "PUBLISHED" && f.regular.base === "" && !f.quoteOnly) e.price = "Un producto publicado necesita precio o ser solo de cotización"
@@ -41,7 +49,7 @@ function validate(f: Form, initialStock: string): Partial<Record<keyof Form | "p
   if (f.manageStock && f.stockQuantity !== initialStock && !f.stockReason.trim()) e.stockReason = "Cuéntanos por qué cambian las existencias"
   return e
 }
-const TAB_OF: Record<string, Tab> = { title: "general", slug: "general", price: "price", sale: "price", saleEndsAt: "price", stockQuantity: "stock", stockReason: "stock" }
+const TAB_OF: Record<string, Tab> = { title: "general", slug: "general", price: "price", sale: "price", saleEndsAt: "price", stockQuantity: "stock", stockReason: "stock", age: "search" }
 
 /** Two linked inputs: type either price, the other follows the product's tax rate. */
 function PriceInputs({ label, value, percent, onChange, error }: { label: string; value: PriceField; percent: number; onChange: (v: PriceField) => void; error?: string }) {
@@ -76,6 +84,9 @@ export function ProductEditor({ productId, onClose, onSaved }: { productId: stri
   const [rates, setRates] = useState<TaxRate[]>([]), [categories, setCategories] = useState<Category[]>([])
   const [form, setForm] = useState<Form>(blank), [initial, setInitial] = useState<Form>(blank)
   const [cats, setCats] = useState<string[]>([]), [initialCats, setInitialCats] = useState<string[]>([])
+  // how shoppers find it: its own keywords and age, plus what it takes from its categories
+  const [keywords, setKeywords] = useState<string[]>([]), [age, setAge] = useState<AgeDraft>(noAge), [found, setFound] = useState<ProductSearchProfile | null>(null)
+  const [page, setPage] = useState<PageDraft>(noPage), [initialPage, setInitialPage] = useState<PageDraft>(noPage)
   const [queued, setQueued] = useState<File[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
   const [loadError, setLoadError] = useState(""), [loading, setLoading] = useState(true), [reload, setReload] = useState(0)
@@ -88,10 +99,13 @@ export function ProductEditor({ productId, onClose, onSaved }: { productId: stri
 
   useEffect(() => {
     let active = true
-    Promise.all([productId ? api.getProduct(productId) : Promise.resolve(null), api.listTaxRates(), api.listCategories(), productId ? api.listProductCategories(productId) : Promise.resolve([] as string[])])
-      .then(([p, r, c, pc]) => {
+    Promise.all([productId ? api.getProduct(productId) : Promise.resolve(null), api.listTaxRates(), api.listCategories(), productId ? api.listProductCategories(productId) : Promise.resolve([] as string[]), productId ? api.getProductSearch(productId) : Promise.resolve(null), productId ? api.getProductPage(productId) : Promise.resolve(emptyPage)])
+      .then(([p, r, c, pc, sp, pg]) => {
         if (!active) return
         setRates(r); setCategories(c); setCats(pc); setInitialCats(pc); setProduct(p)
+        const draft: PageDraft = { shortDescription: pg.shortDescription, descriptionHtml: pg.descriptionHtml, highlights: pg.highlights, specs: pg.specs, sections: pg.sections }
+        setPage(draft); setInitialPage(draft)
+        setFound(sp); setKeywords(sp?.keywords ?? []); setAge(sp ? ageDraft(sp) : noAge)
         const f = p ? fromProduct(p) : { ...blank, taxRateId: r.find(x => x.active && x.percent > 0)?.id ?? "" }
         setForm(f); setInitial(f); setLoading(false)
       }).catch(e => { if (active) { setLoadError(e instanceof Error ? e.message : "No se pudo cargar el producto"); setLoading(false) } })
@@ -99,10 +113,14 @@ export function ProductEditor({ productId, onClose, onSaved }: { productId: stri
   }, [api, productId, reload])
 
   const percent = rates.find(r => r.id === form.taxRateId)?.percent ?? 0
-  const errors = useMemo(() => validate(form, initial.stockQuantity), [form, initial.stockQuantity])
+  const errors = useMemo(() => validate(form, initial.stockQuantity, age), [form, initial.stockQuantity, age])
+  const findDirty = keywords.join("|") !== (found?.keywords ?? []).join("|") || age.ageMin !== (found ? ageDraft(found) : noAge).ageMin || age.ageMax !== (found ? ageDraft(found) : noAge).ageMax
+  const toPage = (d: PageDraft) => d
+  const pageDirty = JSON.stringify(page) !== JSON.stringify(initialPage)
+  const pageProblem = pageDirty ? pageError(toPage(page)) : null
   const shown = submitted ? errors : {}
   const tabAlert = (t: Tab) => Object.keys(shown).some(k => TAB_OF[k] === t)
-  const dirty = JSON.stringify(form) !== JSON.stringify(initial) || [...cats].sort().join() !== [...initialCats].sort().join() || queued.length > 0
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial) || [...cats].sort().join() !== [...initialCats].sort().join() || findDirty || pageDirty || queued.length > 0
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm(f => ({ ...f, [k]: v }))
   const setTitle = (title: string) => setForm(f => ({ ...f, title, slug: slugTouched ? f.slug : slugify(title) }))
   const setRate = (id: string) => { const pct = rates.find(r => r.id === id)?.percent ?? 0; setForm(f => ({ ...f, taxRateId: id, regular: priceFrom(num(f.regular.base), pct), sale: priceFrom(num(f.sale.base), pct) })) }
@@ -112,12 +130,15 @@ export function ProductEditor({ productId, onClose, onSaved }: { productId: stri
     e.preventDefault(); setSubmitted(true); setError("")
     const first = Object.keys(errors)[0]
     if (first) { setTab(TAB_OF[first] ?? "general"); return }
+    if (pageProblem) { setTab("page"); return }
     setBusy(true)
     try {
       const saved = await api.saveProduct(productId, { title: form.title.trim(), slug: form.slug, status: form.status, sku: form.sku.trim() || null, taxRateId: form.taxRateId || null, regularPrice: num(form.regular.base),
         salePrice: form.onSale ? num(form.sale.base) : null, saleStartsAt: form.onSale ? startOf(form.saleStartsAt) : null, saleEndsAt: form.onSale ? startOf(form.saleEndsAt) : null,
         manageStock: form.manageStock, stockQuantity: form.manageStock ? num(form.stockQuantity) : null, stockStatus: form.stockStatus, backorders: form.backorders, quoteOnly: form.quoteOnly, hidePrice: form.hidePrice, featured: form.featured, stockReason: form.stockReason }, csrf)
       if ([...cats].sort().join() !== [...initialCats].sort().join()) await api.saveProductCategories(saved.id, cats, csrf)
+      if (findDirty) await api.saveProductSearch(saved.id, toProfile(keywords, age), csrf)
+      if (pageDirty) await api.saveProductPage(saved.id, cleanPage(toPage(page)), csrf)
       const failed: string[] = []
       for (const file of queued) { try { await api.uploadImage(saved.id, file, saved.title, csrf) } catch { failed.push(file.name) } }
       notify(failed.length ? `Producto guardado. No se pudieron subir: ${failed.join(", ")}.` : productId ? "Producto actualizado." : "Producto creado.")
@@ -152,7 +173,9 @@ export function ProductEditor({ productId, onClose, onSaved }: { productId: stri
         {error && <p role="alert" className="glass-alert">{error}</p>}
         <Tabs label="Secciones del producto" value={tab} onChange={setTab} tabs={[
           { id: "general", label: "General", alert: tabAlert("general") }, { id: "price", label: "Precio", alert: tabAlert("price") },
-          { id: "stock", label: "Inventario", alert: tabAlert("stock") }, { id: "categories", label: "Categorías", badge: cats.length || undefined }]} />
+          { id: "stock", label: "Inventario", alert: tabAlert("stock") }, { id: "categories", label: "Categorías", badge: cats.length || undefined },
+          { id: "page", label: "Página", alert: submitted && !!pageProblem },
+          { id: "search", label: "Búsqueda", badge: keywords.length || undefined, alert: tabAlert("search") }]} />
         <fieldset disabled={readOnly} className="contents">
 
         <TabPanel active={tab === "general"}><div className="grid gap-4">
@@ -197,6 +220,17 @@ export function ProductEditor({ productId, onClose, onSaved }: { productId: stri
           {selectedCats.length > 0 ? <ul className="glass-tag-list" aria-label="Categorías seleccionadas">{selectedCats.map(c => <li key={c.id}><Tag size={12} aria-hidden="true" />{c.name}<button type="button" aria-label={`Quitar ${c.name}`} onClick={() => setCats(l => l.filter(x => x !== c.id))}><X size={12} aria-hidden="true" /></button></li>)}</ul> : <p className="text-sm text-stone-500">Aún no está en ninguna categoría; así será difícil de encontrar.</p>}
           <label className="glass-search"><span className="sr-only">Buscar categoría</span><MagnifyingGlass size={18} aria-hidden="true" /><input type="search" className="glass-field" value={catQuery} onChange={e => setCatQuery(e.target.value)} placeholder={`Buscar entre ${categories.length} categorías`} /></label>
           <div className="glass-options" role="group" aria-label="Categorías disponibles">{visibleCats.length === 0 ? <p className="text-sm text-stone-500">Ninguna categoría coincide.</p> : visibleCats.map(c => <label className="glass-option" key={c.id}><input type="checkbox" checked={cats.includes(c.id)} onChange={e => setCats(l => e.target.checked ? [...l, c.id] : l.filter(id => id !== c.id))} />{c.name}{c.parentId && <span className="text-xs text-stone-500">· {categories.find(p => p.id === c.parentId)?.name}</span>}</label>)}</div>
+        </div></TabPanel>
+
+        <TabPanel active={tab === "page"}><PageFields value={page} onChange={setPage} error={submitted ? pageProblem ?? undefined : undefined} /></TabPanel>
+
+        <TabPanel active={tab === "search"}><div className="grid gap-4">
+          <p className="text-sm text-stone-500">Ayuda a que el buscador y el asistente encuentren este producto, aunque el cliente lo pida con otras palabras.</p>
+          <KeywordInput value={keywords} onChange={setKeywords} hint="Otras formas de pedir este producto que no estén en su nombre. Por ejemplo: regalo de grado, día del niño." />
+          {found && found.inheritedKeywords.length > 0 && <div className="glass-subpanel"><p className="text-sm font-semibold">Ya las tiene por sus categorías</p>
+            <ul className="flex flex-wrap gap-2" aria-label="Palabras clave heredadas de las categorías">{found.inheritedKeywords.map(k => <li key={k}><Badge tone="neutral">{k}</Badge></li>)}</ul>
+            <p className="text-xs text-stone-500">Se editan en Categorías y aplican a todos sus productos.</p></div>}
+          <AgeRange value={age} onChange={setAge} hint={found && ageLabel(found.inheritedAgeMin, found.inheritedAgeMax) ? `Si la dejas vacía, toma la de sus categorías: ${ageLabel(found.inheritedAgeMin, found.inheritedAgeMax)}.` : "Con la edad, el asistente puede recomendarlo solo a quien le sirve."} />
         </div></TabPanel>
       </fieldset></form>
     </div>}

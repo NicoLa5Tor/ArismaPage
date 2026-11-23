@@ -16,6 +16,14 @@
 # Dependencies and build output
 node_modules/
 .next/
+.next-*/
+# Client stores set up locally (scripts/new-store.cjs): settings with secrets and the packaged backend
+tiendas/*/
+!tiendas/README.md
 target/
 .quarkus/
 *.tsbuildinfo
+
+# Local AI tooling, not part of the store
+.agents/
+skills-lock.json

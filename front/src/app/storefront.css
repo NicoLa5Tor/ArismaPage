@@ -1,0 +1,68 @@
+/* Página pública: recorrido por la tienda (scroll world) y secciones de catálogo. */
+@layer components {
+  .storefront { @apply bg-stone-100 text-neutral-900; font-family: var(--font-poppins), sans-serif; --ease-out: cubic-bezier(0.22, 1, 0.36, 1); --brand-pink: #ff1850; --brand-pink-strong: #d40e40; }
+  .storefront .eyebrow { @apply text-sm font-semibold tracking-wide uppercase; color: var(--brand-pink-strong); }
+  .storefront .button-primary { @apply inline-flex items-center gap-2 whitespace-nowrap rounded-full px-8 py-4 text-base font-semibold text-white no-underline transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2; background: var(--brand-pink-strong); outline-color: var(--brand-pink-strong); }
+  .storefront .button-primary:hover { background: #b80b37; }
+  .storefront .button-primary:active { background: #9a0a2e; }
+
+  .storefront-header { @apply absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-8; }
+  .storefront-header .brand img { @apply h-12 w-auto rounded-lg; }
+  .storefront-header > nav { @apply flex gap-2 rounded-full border border-white/60 bg-white/80 p-2 backdrop-blur; }
+  .storefront-header > nav a { @apply rounded-full px-4 py-2 text-sm font-semibold text-neutral-900 no-underline transition-colors duration-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-red-800; }
+
+  .scroll-world { position: relative; height: 900vh; }
+  .scroll-world.is-static { height: auto; }
+  .scroll-world-stage { @apply sticky top-0 h-svh w-full overflow-hidden; }
+  .scroll-world.is-static .scroll-world-stage { @apply relative; }
+  .scroll-world-video { @apply absolute inset-0 h-full w-full object-cover; }
+
+  .scroll-world-hero { @apply absolute left-4 right-4 top-24 z-10 flex max-w-lg flex-col gap-4 rounded-3xl bg-white/90 p-8 backdrop-blur sm:left-8 sm:top-1/2 sm:-translate-y-1/2 sm:p-12; transition: opacity 600ms var(--ease-out), translate 600ms var(--ease-out); }
+  .scroll-world-hero h1 { @apply text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl; }
+  .scroll-world-hero .lead { @apply text-lg text-neutral-700; }
+  .scroll-world-hero .actions { @apply flex flex-wrap items-center gap-4 pt-2; }
+  .scroll-world-hero[data-visible="false"] { opacity: 0; pointer-events: none; }
+  .scroll-world-status { @apply flex items-center gap-2 text-sm font-semibold text-neutral-700; }
+  .scroll-world-status .spin { animation: spin 1s linear infinite; }
+
+  .scroll-world-stop { @apply absolute bottom-8 left-4 z-10 flex items-center gap-4 rounded-2xl border border-white/60 bg-white/80 p-2 pr-6 backdrop-blur sm:left-8; transition: opacity 500ms var(--ease-out), translate 500ms var(--ease-out); }
+  .scroll-world-stop.is-right { @apply left-auto right-4 sm:left-auto sm:right-8; }
+  .scroll-world-stop img { @apply h-16 w-16 rounded-lg bg-white object-contain; }
+  .scroll-world-stop > div { @apply flex flex-col; }
+  .scroll-world-stop h2 { @apply text-lg font-semibold; }
+  .scroll-world-stop .eyebrow { @apply text-xs; }
+  .scroll-world-stop[data-visible="false"] { opacity: 0; translate: 0 2rem; pointer-events: none; }
+
+  .final-cta { @apply flex flex-col items-start gap-4 bg-neutral-900 px-4 py-24 text-white sm:px-16; }
+  .final-cta h2 { @apply text-3xl font-semibold sm:text-5xl; }
+  .final-cta p { @apply max-w-xl text-lg text-neutral-300; }
+  .storefront-footer { @apply flex flex-col gap-2 bg-neutral-900 px-4 pb-12 text-sm text-neutral-400 sm:flex-row sm:justify-between sm:px-16; }
+  .storefront-footer a { @apply text-neutral-300 hover:text-white focus-visible:outline-2 focus-visible:outline-red-500; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-world-hero, .scroll-world-stop { transition: none; }
+  }
+}
+
+@keyframes spin { to { rotate: 360deg; } }
+
+@layer components {
+  .scroll-world-finale { @apply absolute inset-x-4 top-16 z-10 flex flex-col items-center text-center text-4xl font-semibold tracking-tight text-neutral-900 sm:top-24 sm:text-5xl; text-wrap: balance; text-shadow: 0 1px 16px rgb(255 255 255 / 0.9); transition: opacity 700ms var(--ease-out), translate 700ms var(--ease-out); }
+  .scroll-world-finale[data-visible="false"] { opacity: 0; translate: 0 2rem; }
+}
+
+@layer components {
+  .scroll-world-camera { @apply absolute inset-0; }
+  .scroll-world:not(.is-static) .scroll-world-stage { background: var(--brand-pink); }
+  .scroll-world-fade { @apply absolute inset-0 z-10; pointer-events: none; }
+  .scroll-world-fade > * { pointer-events: auto; }
+  .scroll-world-outro { @apply absolute inset-0 z-20 flex items-center justify-center overflow-hidden; pointer-events: none; }
+  .scroll-world-logo-wrap { @apply relative; }
+  .arisma-logo { position: relative; width: min(80vw, 40rem); aspect-ratio: 834 / 332; visibility: hidden; }
+  .arisma-logo-icon { position: absolute; left: 2.64%; top: 6.93%; width: 28.42%; height: 68.07%; }
+  .arisma-logo-risma, .arisma-logo-didacticos { position: absolute; left: 30.22%; top: 0; width: 69.78%; height: 100%; }
+  .scroll-world-sparkle { @apply absolute text-amber-300; translate: -50% -50%; visibility: hidden; }
+  .scroll-world-cover { @apply absolute inset-0 z-30; background: var(--brand-pink); visibility: hidden; opacity: 0; }
+  .scroll-world.is-static .scroll-world-outro, .scroll-world.is-static .scroll-world-cover { display: none; }
+}
+

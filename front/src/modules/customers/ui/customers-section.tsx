@@ -17,12 +17,12 @@ const COLUMNS: Column<CustomerRow>[] = [
   { key: "spent", label: "Total comprado", numeric: true, render: c => <span className="font-semibold">{money(c.totalSpent)}</span> },
   { key: "last", label: "Última compra", render: c => <span className="muted whitespace-nowrap">{date(c.lastOrderAt)}</span> },
 ]
-const SORTS: { value: CustomerSort; label: string }[] = [{ value: "recent", label: "Compra reciente" }, { value: "spent", label: "Mayor valor" }, { value: "orders", label: "Más pedidos" }, { value: "name", label: "Apellido" }]
+const SORTS: { value: CustomerSort; label: string }[] = [{ value: "recent", label: "Más recientes" }, { value: "spent", label: "Mayor valor" }, { value: "orders", label: "Más pedidos" }, { value: "name", label: "Apellido" }]
 
 export function CustomersSection() {
   const api = useCustomersPort()
   const { openCustomer, version } = useSession()
-  const [q, setQ] = useState(""), [buyers, setBuyers] = useState(true), [sort, setSort] = useState<CustomerSort>("recent"), [offset, setOffset] = useState(0)
+  const [q, setQ] = useState(""), [buyers, setBuyers] = useState(false), [sort, setSort] = useState<CustomerSort>("recent"), [offset, setOffset] = useState(0)
   const query = useDebounced(q)
   const customers = useLoad(() => api.list(query, buyers, sort, offset), [query, buyers, sort, offset, version])
   return <div className="glass-scroll"><Card icon={Users} title={buyers ? "Clientes que han comprado" : "Todos los clientes y cuentas"} subtitle={customers.data ? plural(customers.data.total, "cliente", "clientes") : undefined}>

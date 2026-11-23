@@ -1,0 +1,143 @@
+/* Página de producto (/producto/[slug]). Hereda de .storefront y .catalog: Poppins, tonos del logo y la curva --ease-out. */
+@layer components {
+  /* La foto y el nombre de la tarjeta ahora son enlaces al producto */
+  .product-card-media { @apply block; }
+  .product-card-body h3 a { @apply rounded text-inherit no-underline hover:underline focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .product-card-action { @apply cursor-pointer; }
+  .product-card-action.is-cart { background: var(--ink); }
+  .product-card-action.is-cart:hover { @apply bg-neutral-700; }
+  .product-card-action.is-cart:active { @apply bg-neutral-950; }
+  .product-card-action.is-cart[data-sent="true"] { @apply bg-emerald-600; }
+
+  /* Aparición al entrar en pantalla (IntersectionObserver en reveal.tsx) */
+  .reveal { opacity: 0; translate: 0 2rem; transition: opacity 700ms var(--ease-out), translate 700ms var(--ease-out); }
+  .reveal[data-visible="true"] { opacity: 1; translate: 0 0; }
+
+  .product-top { @apply mx-auto flex max-w-7xl flex-col gap-6 px-4 pt-6 sm:px-8; }
+  .crumbs ol { @apply flex flex-wrap items-center gap-1 text-sm text-neutral-500; }
+  .crumbs li { @apply inline-flex min-w-0 items-center gap-1; }
+  .crumbs a { @apply rounded px-1 text-neutral-600 no-underline hover:text-neutral-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .crumbs li[aria-current="page"] span { @apply max-w-60 truncate px-1 font-medium; color: var(--ink); }
+
+  .product-hero { @apply grid gap-8 lg:grid-cols-2 lg:gap-12; }
+
+  /* Galería (adaptada de 21st.dev Thumbnail image viewer) */
+  .gallery { @apply flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start; }
+  .gallery-stage { @apply relative isolate aspect-square overflow-hidden rounded-3xl border border-stone-200 bg-white; --zoom-x: 50%; --zoom-y: 50%; }
+  .gallery-stage img { @apply size-full object-contain p-6 select-none; transform-origin: var(--zoom-x) var(--zoom-y); transition: scale 500ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) { .gallery-stage[data-zoom="true"]:hover img { scale: 1.8; cursor: zoom-in; } }
+  .gallery-empty { @apply grid size-full place-items-center bg-stone-100 text-stone-400; }
+  .gallery-badges { @apply absolute top-4 left-4 z-10 flex flex-col items-start gap-2; }
+  .gallery-count { @apply absolute bottom-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold tabular-nums backdrop-blur; color: var(--ink); }
+  .gallery-arrows { @apply absolute right-4 bottom-4 z-10 flex gap-2; }
+  .gallery-arrows button { @apply grid size-10 place-items-center rounded-full border border-stone-200 bg-white/90 backdrop-blur transition-colors duration-300 hover:bg-white active:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2; color: var(--ink); outline-color: var(--brand-pink-strong); }
+  .gallery-strip { @apply flex gap-2 overflow-x-auto p-1; scrollbar-width: thin; }
+  .gallery-thumb { @apply size-20 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-stone-200 bg-white opacity-60 transition-opacity duration-300 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .gallery-thumb[aria-selected="true"] { @apply opacity-100; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .gallery-thumb img { @apply size-full object-contain p-1; }
+
+  /* Resumen y compra */
+  .product-summary { @apply flex flex-col gap-4; }
+  .product-summary h1 { @apply text-3xl leading-tight font-semibold sm:text-4xl; }
+  .product-rating { @apply inline-flex w-fit items-center gap-2 rounded-full text-sm font-medium text-neutral-600 no-underline hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-4; outline-color: var(--brand-pink-strong); }
+  .product-proof, .product-age { @apply inline-flex w-fit items-center gap-2 text-sm font-medium text-neutral-600; }
+  .product-proof svg { color: var(--tone-green); }
+  .product-age { @apply rounded-full bg-white px-4 py-2; color: var(--ink); }
+  .product-age svg { color: var(--tone-orange); }
+  .product-lead { @apply max-w-prose text-base text-neutral-700 sm:text-lg; }
+  .product-highlights { @apply grid gap-2 text-sm sm:grid-cols-2; }
+  .product-highlights li { @apply relative rounded-2xl bg-white py-3 pr-4 pl-10; }
+  .product-highlights li::before { content: ""; @apply absolute top-4 left-4 size-3 rounded-full; background: var(--tone-green); }
+
+  .stars { @apply relative inline-flex leading-none; color: var(--tone-orange); }
+  .stars-empty, .stars-full { @apply inline-flex; }
+  .stars-empty { @apply text-stone-300; }
+  .stars-full { @apply absolute inset-y-0 left-0 overflow-hidden whitespace-nowrap; }
+  .stars-full svg { @apply shrink-0; }
+
+  .buy { @apply flex flex-col gap-4 rounded-3xl border border-stone-200 bg-white p-6; }
+  .buy-price { @apply flex flex-wrap items-baseline gap-2 tabular-nums; }
+  .buy-price strong { @apply text-3xl font-semibold sm:text-4xl; }
+  .buy-price .buy-quote { @apply text-2xl; }
+  .buy-price s { @apply text-lg text-neutral-400; }
+  .buy-tax { @apply w-full text-xs font-medium text-neutral-500; }
+  .buy-stock { @apply inline-flex items-center gap-2 text-sm font-medium; }
+  .buy-stock[data-tone="good"] { @apply text-emerald-700; }
+  .buy-stock[data-tone="warn"] { @apply text-amber-700; }
+  .buy-stock[data-tone="bad"] { @apply text-neutral-500; }
+  .buy-actions { @apply flex flex-col gap-2; }
+  .buy-row { @apply flex flex-wrap items-stretch gap-2; }
+  .buy-add { @apply min-w-48 flex-1; }
+  .buy-unavailable { @apply text-sm text-neutral-600; }
+  .buy-whatsapp { @apply inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 text-base font-semibold text-white no-underline transition-colors duration-300 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700; }
+  .buy-whatsapp.is-secondary { @apply border border-stone-200 bg-white text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100; }
+
+  /* Botón de agregar (adaptado de 21st.dev Add to Cart Button): capas apiladas que se funden entre estados */
+  .add-to-cart { @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 text-base font-semibold text-white transition-colors duration-300 select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50; background: var(--brand-pink-strong); outline-color: var(--brand-pink-strong); transition-timing-function: var(--ease-out); }
+  .add-to-cart:hover { background: #b80b37; }
+  .add-to-cart:active { background: #9a0a2e; }
+  .add-to-cart[data-phase="added"] { @apply cursor-default bg-emerald-600; }
+  .add-to-cart[data-phase="full"] { @apply cursor-default bg-neutral-800; }
+  .add-to-cart-icon { @apply relative size-5 shrink-0; }
+  .add-to-cart-icon span { @apply absolute inset-0 grid place-items-center; }
+  .add-to-cart-label { @apply grid; }
+  .add-to-cart-label span { @apply col-start-1 row-start-1 text-center whitespace-nowrap; }
+  .add-to-cart-icon span, .add-to-cart-label span { opacity: 0; transition: opacity 200ms var(--ease-out); }
+  .add-to-cart-icon span[data-on="true"], .add-to-cart-label span[data-on="true"] { opacity: 1; transition: opacity 300ms var(--ease-out) 150ms; }
+
+  /* Barra fija de compra en el celular */
+  .buy-bar { @apply fixed inset-x-0 bottom-0 z-30 flex items-center gap-4 border border-x-0 border-b-0 border-stone-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden; translate: 0 100%; transition: translate 400ms var(--ease-out); padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+  .buy-bar[data-shown="true"] { translate: 0 0; }
+  .buy-bar > div { @apply flex min-w-0 flex-1 flex-col; }
+  .buy-bar span { @apply truncate text-xs text-neutral-500; }
+  .buy-bar strong { @apply text-lg font-semibold tabular-nums; }
+
+  /* Franja de dos líneas */
+  .product-tagline { @apply mx-auto mt-16 flex max-w-7xl flex-col gap-4 px-4 sm:px-8; }
+  .product-tagline-lines { @apply flex flex-col text-3xl leading-tight font-semibold tracking-tight sm:text-5xl; text-wrap: balance; }
+  .product-tagline-lines span:last-child { color: var(--brand-pink-strong); }
+
+  /* Cuerpo: descripción, ficha, cómo llega, relacionados */
+  .product-body { @apply mx-auto flex max-w-7xl flex-col gap-16 px-4 py-16 sm:px-8; }
+  .product-columns { @apply grid gap-12 lg:grid-cols-2; }
+  .product-block { @apply flex min-w-0 flex-col gap-6; }
+  .product-block > h2, .product-block-head h2 { @apply text-2xl font-semibold sm:text-3xl; }
+  .product-block-head { @apply flex flex-wrap items-end justify-between gap-4; }
+  .product-description { @apply flex max-w-prose flex-col gap-4 text-base text-neutral-700; text-wrap: pretty; }
+  .product-description ul, .product-description ol { @apply flex flex-col gap-2 pl-6; }
+  .product-description ul { @apply list-disc; }
+  .product-description ol { @apply list-decimal; }
+  .product-description li::marker { color: var(--brand-pink-strong); }
+  .product-description h3, .product-description h4 { @apply text-lg font-semibold; color: var(--ink); }
+  .product-description strong, .product-description b { @apply font-semibold; color: var(--ink); }
+  .product-description em, .product-description i { @apply font-medium not-italic; }
+  .product-description a { @apply underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2; color: var(--brand-pink-strong); outline-color: var(--brand-pink-strong); }
+  .product-sheet { @apply flex flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white; }
+  .product-sheet > div { @apply grid grid-cols-3 gap-4 px-6 py-4 text-sm odd:bg-stone-50; }
+  .product-sheet dt { @apply inline-flex items-center gap-1 font-medium text-neutral-500; }
+  .product-sheet dd { @apply col-span-2 font-medium; color: var(--ink); }
+  .product-tags { @apply flex flex-wrap gap-2; }
+  .product-tags a { @apply rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold no-underline transition-colors duration-300 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2; color: var(--ink); outline-color: var(--brand-pink-strong); }
+  .product-facts { @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-4; }
+  .product-facts li { @apply flex flex-col gap-2 rounded-3xl border border-stone-200 bg-white p-6; }
+  .product-fact-icon { @apply mb-2 grid size-12 place-items-center rounded-2xl; background: var(--tone); color: var(--on-tone); }
+  .product-facts h3 { @apply text-base font-semibold; }
+  .product-facts p { @apply text-sm text-neutral-600; }
+  .product-related { @apply lg:grid-cols-4; }
+
+  /* 404 de la tienda */
+  .store-missing-body { @apply mx-auto flex min-h-96 max-w-2xl flex-col items-start justify-center gap-4 px-4 py-24 sm:px-8; }
+  .store-missing-body h1 { @apply text-3xl font-semibold sm:text-5xl; }
+  .store-missing-body p:not(.eyebrow) { @apply text-lg text-neutral-600; }
+  .store-missing-actions { @apply flex flex-wrap items-center gap-6 pt-4; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; translate: 0 0; transition: none; }
+    .gallery-stage img, .buy-bar, .add-to-cart-icon span, .add-to-cart-label span { transition: none; }
+    .gallery-stage[data-zoom="true"]:hover img { scale: 1; }
+  }
+}
+
+@supports (corner-shape: squircle) {
+  .storefront .gallery-stage, .storefront .buy, .storefront .product-sheet, .storefront .product-facts li { border-radius: 2.5rem; }
+}

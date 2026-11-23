@@ -81,7 +81,8 @@ type DialogProps = {
   media?: ReactNode
   /** Sticky action bar at the bottom. */
   footer?: ReactNode
-  size?: "md" | "lg" | "xl"; busy?: boolean
+  /** "full" fills the screen, for work that needs room (an order). */
+  size?: "md" | "lg" | "xl" | "full"; busy?: boolean
   /** When set, closing asks before discarding (e.g. unsaved changes). */
   confirmClose?: string | null
 }

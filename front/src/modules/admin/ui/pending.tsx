@@ -6,9 +6,11 @@ import { count, money, plural, today } from "../../shared/ui/format"
 import { useLoad } from "../../shared/ui/parts"
 import { useSession } from "../../shared/ui/admin-context"
 import { useReportsPort } from "../../reporting/ui/use-reports"
+import { useStoreProfile } from "../../shared/ui/store-profile"
 
 /** Right column: what needs attention now. Every count opens the matching filtered list. */
 export function Pending() {
+  const profile = useStoreProfile()
   const reports = useReportsPort()
   const { go, version } = useSession()
   const month = useMemo(() => { const t = today(); return { from: `${t.slice(0, 7)}-01`, to: t } }, [])
@@ -25,9 +27,11 @@ export function Pending() {
       {link("En camino", q?.inTransit, () => go("orders", { etapa: "shipped" }))}
       {link("Requieren atención", q?.issues, () => go("orders", { etapa: "issue" }))}
       {link("Sin pagar", q?.unpaid, () => go("orders", { etapa: "unpaid" }))}
+      {link("De la tienda sin pagar", q?.storeUnpaid, () => go("orders", { etapa: "unpaid" }))}
+      {link("Opiniones por revisar", q?.reviewsPending, () => go("reviews"))}
       {link("Cotizaciones abiertas", q?.openQuotes, () => go("quotes"))}
       {link("Productos por reponer", q?.lowStock, () => go("inventory"))}
     </section>
-    <section className="glass-window glass-widget glass-widget-dark"><div className="glass-widget-head"><span>Catálogo de Arisma</span><Images size={20} aria-hidden="true" /></div><div className="glass-product-scene" aria-hidden="true" /><p>Precios con IVA calculado desde la tasa de cada producto.</p><button type="button" className="glass-chip" onClick={() => go("products")}>Ver productos <span aria-hidden="true">→</span></button></section>
+    <section className="glass-window glass-widget glass-widget-dark"><div className="glass-widget-head"><span>Catálogo de {profile.shortName}</span><Images size={20} aria-hidden="true" /></div><div className="glass-product-scene" aria-hidden="true" /><p>Precios con IVA calculado desde la tasa de cada producto.</p><button type="button" className="glass-chip" onClick={() => go("products")}>Ver productos <span aria-hidden="true">→</span></button></section>
   </>
 }

@@ -1,6 +1,7 @@
 import type { Note } from "../../shared/domain/note"
 
-export type QuoteStatus = "pending" | "accepted" | "rejected" | "expired" | "converted"
+import type { QuoteStatus } from "../../shared/domain/statuses"
+export type { QuoteStatus }
 export const QUOTE_STATUSES: QuoteStatus[] = ["pending", "accepted", "rejected", "expired", "converted"]
 /** Converted quotes became orders and are final; the others are follow-up states set by hand. */
 export const MANUAL_QUOTE_STATUSES: QuoteStatus[] = ["accepted", "rejected", "expired", "pending"]

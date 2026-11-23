@@ -1,0 +1,29 @@
+{
+  "name": "arisma-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "fetch-model": "tsx scripts/fetch-model.ts",
+    "test": "tsx --test test/*.test.ts",
+    "phrases": "tsx scripts/check-phrases.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
+    "@orama/orama": "^3.1.18",
+    "fastify": "^5.12.8",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

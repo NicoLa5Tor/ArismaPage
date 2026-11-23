@@ -1,0 +1,66 @@
+{
+  "name": "Arisma",
+  "locale": "es-CO",
+  "currency": "COP",
+  "offer": "juguetes y material didáctico",
+  "catalog": "juguetes, material didáctico, ciencias, arte, deportes y dotación para colegios",
+  "examples": ["rompecabezas para 4 años", "juegos de matemáticas por menos de 50 mil"],
+  "starters": ["Regalo para un niño de 5 años"],
+  "invitations": [
+    "¿Para quién buscas y qué edad tiene?",
+    "Cuéntame la edad o lo que quieres trabajar y te muestro opciones.",
+    "¿Qué estás buscando hoy? Puedes decirme la edad, el tema o tu presupuesto."
+  ],
+  "audienceWords": [
+    "niño", "niña", "niños", "niñas", "hijo", "hija", "hijos", "hijas", "sobrino", "sobrina", "sobrinos", "sobrinas",
+    "nieto", "nieta", "nietos", "nietas", "ahijado", "ahijada", "alumno", "alumna", "alumnos", "alumnas", "estudiante", "estudiantes",
+    "amigo", "amiga", "primo", "prima", "hermano", "hermana", "hermanito", "hermanita", "novio", "novia", "esposo", "esposa", "mamá", "papá", "abuelo", "abuela", "tío", "tía"
+  ],
+  "genericWords": ["juguete", "juguetes", "material", "materiales", "didáctico", "didácticos", "detalle"],
+  "slots": [
+    { "id": "age", "question": "Te ayudo a elegir. ¿Qué edad tiene la persona para quien buscas?", "retry": "¿Cuántos años tiene? Toca un rango o escríbeme la edad, por ejemplo «8»." },
+    { "id": "category", "question": "¿Qué le gusta o qué quieres trabajar? Elige un área y te muestro opciones.", "retry": "Elige una de estas áreas, o toca «Ver de todo» y te muestro de todas." }
+  ],
+  "budgetSteps": [50000, 100000, 200000],
+  "topics": [
+    {
+      "id": "shipping",
+      "handoff": true,
+      "examples": ["hacen envíos", "hacen envíos a Barranquilla", "envían a Medellín", "hacen envíos a otras ciudades", "cuánto cuesta el envío", "cuánto vale el domicilio", "despachan a todo el país", "hacen domicilios", "cuánto se demora el envío", "el envío es gratis", "envían fuera de Bogotá", "cuánto tarda en llegar", "mandan a Cali"],
+      "replies": ["Sí, despachamos a todo el territorio nacional. En Bogotá el envío es gratis en compras de más de $150.000; para el resto del país te confirmamos el valor y el tiempo de entrega por WhatsApp antes de que pagues."]
+    },
+    {
+      "id": "payments",
+      "examples": ["cómo puedo pagar", "qué medios de pago tienen", "reciben tarjeta", "puedo pagar contra entrega", "aceptan PSE", "formas de pago", "se puede pagar en efectivo", "pago contraentrega", "puedo pagar con tarjeta de crédito", "cuál es la compra mínima", "reciben Nequi", "aceptan Daviplata", "puedo pagar con Nequi o Daviplata", "puedo pagar cuando llegue el pedido"],
+      "replies": ["Puedes pagar con tarjeta de crédito, PSE, Baloto o pago referenciado en bancos. El pago contra entrega aplica en compras desde $200.000 y la compra mínima por la página es de $50.000."]
+    },
+    {
+      "id": "location",
+      "examples": ["dónde están ubicados", "dónde queda la tienda", "cuál es la dirección", "qué horario tienen", "horario de atención", "a qué hora abren", "a qué hora cierran", "atienden los sábados", "tienen tienda física", "puedo ir a la tienda", "tienen punto de venta", "en qué ciudad están", "abren los domingos", "dónde quedan", "en qué barrio están", "cómo llego a la tienda", "en qué parte de Bogotá están"],
+      "replies": ["Estamos en Bogotá, en la Calle 53 No. 15-24, locales 103 al 105. Atendemos de lunes a viernes de 9:00 a. m. a 5:30 p. m. y los sábados de 9:30 a. m. a 5:30 p. m."]
+    },
+    {
+      "id": "warranty",
+      "handoff": true,
+      "examples": ["tienen garantía", "qué garantía tienen los productos", "y si llega dañado", "qué pasa si sale defectuoso", "cuánto dura la garantía", "el producto llegó roto", "cómo hago válida la garantía"],
+      "replies": ["Todos los productos tienen seis meses de garantía por defectos de fabricación; no cubre daños por uso inadecuado. Si algo llegó mal, escríbenos por WhatsApp y lo revisamos contigo."]
+    },
+    {
+      "id": "human",
+      "handoff": true,
+      "examples": ["quiero hablar con un asesor", "hablar con una persona", "me pueden llamar", "cuál es el número de WhatsApp", "teléfono de contacto", "necesito que me atienda alguien", "comunicarme con un vendedor", "tienen WhatsApp", "número de teléfono", "cómo los contacto"],
+      "replies": ["Claro. Un asesor te atiende por WhatsApp, o puedes llamar al 601 210 2138 o al 310 866 9112 en horario de tienda."]
+    },
+    {
+      "id": "institutions",
+      "handoff": true,
+      "examples": ["atienden colegios", "venden al por mayor", "hacen cotizaciones para colegios", "son distribuidores", "venden a instituciones", "precios por mayor", "atienden jardines infantiles", "necesito una cotización institucional", "dan descuento si compro varios", "tienen precios por cantidad"],
+      "replies": ["Sí, atendemos colegios, jardines y distribuidores. Nuestros asesores comerciales y pedagogos te ayudan a armar la dotación por edad y por área, y te cotizan por WhatsApp."]
+    },
+    {
+      "id": "quote",
+      "examples": ["por qué dice precio a cotizar", "cómo cotizo", "cómo hago un pedido", "cómo compro", "cómo es el proceso de compra", "por qué no aparece el precio", "cómo hago la compra", "cómo pido una cotización"],
+      "replies": ["Es sencillo: eliges el producto y tocas Cotizar; te respondemos por WhatsApp con precio, disponibilidad y entrega. Algunos productos dicen «precio a cotizar» porque su valor depende de la cantidad o de la dotación que necesites."]
+    }
+  ]
+}

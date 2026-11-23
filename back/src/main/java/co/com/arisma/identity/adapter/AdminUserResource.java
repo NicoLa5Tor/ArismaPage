@@ -7,6 +7,7 @@ import co.com.arisma.identity.domain.Role;
 import co.com.arisma.shared.adapter.Requires;
 import co.com.arisma.shared.domain.NotFound;
 import co.com.arisma.shared.domain.Permission;
+import co.com.arisma.shared.adapter.Guarded;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
@@ -38,6 +39,7 @@ public class AdminUserResource {
 
     /** Any signed-in user, even one who must still change the temporary password. */
     @GET @Path("/me") @Requires({}) public Map<String,Object> me() { return SessionResource.user((Principal) context.getProperty("principal")); }
+    @Guarded(bucket = "admin-password", limit = 10, windowSeconds = 900)
     @PUT @Path("/me/password") @Requires({}) public Response changePassword(PasswordChange in, @CookieParam(SessionResource.COOKIE) String token) {
         if (in == null) throw new IllegalArgumentException("Escribe la contraseña actual y la nueva");
         account.changePassword(actor(), in.current(), in.next(), token);

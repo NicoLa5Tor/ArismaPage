@@ -10,7 +10,9 @@ import java.util.*;
 @ApplicationScoped
 public class PostgresCustomers implements CustomerQueries {
     private static final String FILTER = " FROM customer c JOIN v_customer_stats s ON s.customer_id=c.id WHERE (?='' OR c.email ILIKE ? OR (c.first_name||' '||c.last_name) ILIKE ? OR c.phone ILIKE ? OR c.document_number=?) AND (NOT ? OR s.orders>0)";
-    private static final Map<Sort,String> ORDER = Map.of(Sort.RECENT,"s.last_order_at DESC NULLS LAST",Sort.SPENT,"s.total_spent DESC",Sort.ORDERS,"s.orders DESC",Sort.NAME,"lower(c.last_name),lower(c.first_name)");
+    /** The customer's latest move: signing up or placing any order (paid or not), so new accounts and new orders come first. */
+    private static final String LAST_ACTIVITY = "GREATEST(c.created_at,COALESCE((SELECT max(o.placed_at) FROM sales_order o WHERE o.customer_id=c.id),c.created_at))";
+    private static final Map<Sort,String> ORDER = Map.of(Sort.RECENT,LAST_ACTIVITY+" DESC",Sort.SPENT,"s.total_spent DESC",Sort.ORDERS,"s.orders DESC",Sort.NAME,"lower(c.last_name),lower(c.first_name)");
     @Inject DataSource db;
 
     public Page list(String query, boolean buyersOnly, Sort sort, Page.Request page) {
@@ -24,6 +26,8 @@ public class PostgresCustomers implements CustomerQueries {
             if(found.isEmpty()) return Optional.<Map<String,Object>>empty();
             var customer=new LinkedHashMap<>(found.get());
             customer.put("addresses",Jdbc.list(c,"SELECT kind,first_name,last_name,line1,line2,city,state,postcode,country,phone FROM address WHERE customer_id=? ORDER BY kind",id));
+            // the addresses the customer saved in their account (the default one first)
+            customer.put("book",Jdbc.list(c,"SELECT id,label,recipient,phone,state,city,neighborhood,street,detail,instructions,is_default FROM customer_address WHERE customer_id=? ORDER BY is_default DESC,created_at DESC",id));
             customer.put("orders",Jdbc.list(c,"SELECT o.id,o.number,o.status,o.placed_at,o.total,o.payment_method,(SELECT COALESCE(sum(l.quantity),0) FROM order_line l WHERE l.order_id=o.id) AS units FROM sales_order o WHERE o.customer_id=? ORDER BY o.placed_at DESC",id));
             customer.put("quotes",Jdbc.list(c,"SELECT id,number,status,created_at,total FROM quote_request WHERE customer_id=? ORDER BY created_at DESC",id));
             customer.put("topProducts",Jdbc.list(c,"SELECT l.product_id,max(l.title) AS title,sum(l.quantity) AS units,sum(l.total) AS total,max(cv.image_id::text)::uuid AS image_id,max(cv.original_url) AS image_url,bool_or(cv.uploaded) AS image_uploaded FROM order_line l JOIN v_paid_order o ON o.id=l.order_id LEFT JOIN v_product_cover cv ON cv.product_id=l.product_id WHERE o.customer_id=? GROUP BY l.product_id ORDER BY units DESC LIMIT 5",id));

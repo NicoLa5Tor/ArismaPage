@@ -9,4 +9,7 @@ export const httpFulfillment: FulfillmentPort = {
   reroute(orderId, method, details, csrf) { return request(`/orders/${seg(orderId)}/shipment`, json("PUT", { method, ...details }, csrf)) },
   moveAll(orderIds, status, note, csrf) { return request("/fulfillment/status", json("POST", { orderIds, status, note }, csrf)) },
   closeStale(days, csrf) { return request("/fulfillment/close-stale", json("POST", { days }, csrf)) },
+  refreshTracking(orderId, csrf) { return request(`/orders/${seg(orderId)}/shipment/tracking`, json("POST", {}, csrf)) },
+  trackingStatus() { return request("/tracking") },
+  setTracking(enabled, csrf) { return request("/tracking", json("PUT", { enabled }, csrf)) },
 }

@@ -1,0 +1,87 @@
+/* "Pregúntale a Arisma" (/buscar): oscuro, con los cuatro colores del logo como única luz. Sin degradados de fondo. */
+@layer components {
+  .assistant { @apply relative flex h-svh flex-col overflow-hidden; background: #0f0e14; color: #ececf1; --muted: #9a98a6; --line: #26242f; --card: #17161d; }
+  .assistant h1, .assistant h2 { text-wrap: balance; }
+  .assistant p { text-wrap: pretty; }
+
+  .assistant-header { @apply relative z-10 flex items-center justify-between px-4 py-4 sm:px-8; }
+  .assistant-back { @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium no-underline transition-colors duration-200 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2; color: var(--muted); outline-color: var(--tone-blue); }
+  .assistant-back:hover { color: #fff; }
+  .assistant-restart { @apply inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-white/10 active:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--tone-blue); }
+  .assistant-brand img { @apply h-10 w-auto rounded-lg; }
+
+  .assistant-scroll { @apply relative z-0 flex-1 overflow-y-auto; scrollbar-width: thin; scrollbar-color: #2a2833 transparent; }
+  .assistant-thread { @apply mx-auto flex min-h-full max-w-4xl flex-col gap-8 px-4 pt-4 pb-12 sm:px-8; }
+
+  /* Portada: esfera de partículas y título */
+  .assistant-hero { @apply relative m-auto grid w-full max-w-xl place-items-center; height: min(56svh, 32rem); }
+  .orb { @apply absolute inset-0; }
+  .orb-canvas, .orb-canvas canvas { @apply block size-full; }
+  .orb-fallback { @apply absolute inset-0 m-auto size-3/4 opacity-70; }
+  .assistant-hero-copy { @apply relative z-10 flex flex-col items-center gap-4 px-4 text-center; }
+  .assistant-hero h1 { @apply text-4xl leading-tight font-semibold tracking-tight sm:text-6xl; text-shadow: 0 2px 24px rgb(15 14 20 / 0.6); }
+  .assistant-hero p { @apply max-w-md text-base sm:text-lg; color: #dddbe4; text-shadow: 0 1px 12px rgb(15 14 20 / 0.8); }
+
+  /* Mensajes */
+  .turn-user { @apply flex justify-end; }
+  .bubble { @apply max-w-prose rounded-3xl rounded-br-lg border px-4 py-2 text-base; background: var(--card); border-color: var(--line); }
+  .turn-assistant { @apply grid gap-4; grid-template-columns: 2rem minmax(0, 1fr); }
+  .turn-avatar { @apply grid size-8 place-items-center rounded-full border; border-color: var(--line); background: #141319; color: var(--tone-pink); }
+  .turn-body { @apply flex min-w-0 flex-col gap-4; }
+  .turn-error { @apply flex flex-col items-start gap-2 rounded-2xl border px-4 py-4; border-color: color-mix(in srgb, var(--tone-pink) 40%, transparent); background: color-mix(in srgb, var(--tone-pink) 8%, transparent); }
+  .turn-stopped { @apply text-sm; color: var(--muted); }
+
+  /* Línea de "pensando" */
+  .thought-head { @apply inline-flex items-center gap-2 rounded-lg py-1 pr-2 text-sm font-medium disabled:cursor-default focus-visible:outline-2; color: #d8d7df; outline-color: var(--tone-blue); }
+  .thought-glyph { color: var(--tone-orange); }
+  .thought[data-working="true"] .thought-glyph, .thought[data-working="true"] .thought-label { animation: thought-pulse 1.6s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+  .thought[data-working="false"] .thought-label { color: var(--muted); }
+  .thought-timer { @apply tabular-nums; color: var(--muted); }
+  .thought-caret { @apply transition-transform duration-200; color: var(--muted); }
+  .thought-head[aria-expanded="true"] .thought-caret { @apply rotate-180; }
+  .thought-steps { @apply flex flex-col gap-2 overflow-hidden pt-2 pl-8 text-sm; color: #c8c7d0; }
+  .thought-steps li { @apply flex items-center gap-2; }
+  .thought-steps li svg { color: var(--tone-green); }
+  .thought-steps li span { @apply tabular-nums; color: var(--muted); }
+
+  /* Respuesta */
+  .answer { @apply flex flex-col gap-4; }
+  .answer-text { @apply text-base leading-relaxed sm:text-lg; color: #e2e1e8; }
+  .answer-note { @apply flex items-center gap-2 text-sm; color: var(--tone-orange); }
+  .answer-grid { @apply grid grid-cols-2 gap-4 lg:grid-cols-3; }
+  .answer-grid .product-card { @apply h-full; color: var(--ink); }
+  .answer-whatsapp { @apply inline-flex w-fit items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2; }
+  .answer-actions { @apply -ml-2 flex gap-1; }
+  .answer-actions button { @apply grid size-8 place-items-center rounded-lg transition-colors duration-150 hover:bg-white/5 focus-visible:outline-2; color: #6f6d7b; outline-color: var(--tone-blue); }
+  .answer-actions button:hover { color: #fff; }
+  .answer-actions button[aria-pressed="true"], .answer-actions button[data-on="true"] { color: var(--tone-blue); }
+  .answer-chips, .assistant-examples { @apply flex flex-wrap gap-2; }
+  .ask-chip { @apply rounded-full border px-4 py-2 text-left text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2; border-color: var(--line); background: #141319; color: #cfcdd8; outline-color: var(--tone-blue); }
+  .ask-chip:hover { @apply text-white; border-color: color-mix(in srgb, var(--tone-pink) 60%, transparent); }
+  .ask-chip:active { @apply scale-95; }
+
+  /* Zona inferior y tarjeta de escritura */
+  .assistant-bottom { @apply relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-2 px-4 pb-4 sm:px-8; }
+  .assistant-examples { @apply justify-center pb-2; }
+  .composer-card { @apply relative flex flex-col gap-2 rounded-3xl border px-4 pt-4 pb-2; border-color: #1f1e25; background: #0b0a0f; box-shadow: 0 20px 60px -20px rgb(0 0 0 / 0.7); }
+  .composer-beams { @apply pointer-events-none absolute inset-0 size-full overflow-visible; }
+  .composer-beams rect { width: calc(100% - 2px); height: calc(100% - 2px); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 9 91; animation: beam-run 6s linear infinite; opacity: 0.9; }
+  .composer-input { @apply block w-full resize-none bg-transparent px-1 text-base leading-normal outline-none placeholder:text-neutral-500; color: #ededf2; max-height: 10rem; }
+  .composer-toolbar { @apply flex items-center justify-between gap-4; }
+  .composer-hint { @apply hidden text-xs sm:inline; color: #5d5b68; }
+  .composer-hint kbd { @apply rounded border px-1 font-sans text-xs; border-color: #2a2833; }
+  .send-button { @apply grid size-10 shrink-0 place-items-center rounded-full border text-white transition-colors duration-200 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2; border-color: #2a2a2e; background: var(--brand-pink-strong); outline-color: var(--tone-blue); }
+  .send-button:hover:not(:disabled) { background: #b80b37; }
+  .send-button[data-busy="true"] { background: #1c1b22; }
+  .assistant-foot { @apply text-center text-xs; color: #5d5b68; }
+}
+
+@keyframes beam-run { to { stroke-dashoffset: -100; } }
+@keyframes thought-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-beams rect, .thought[data-working="true"] .thought-glyph, .thought[data-working="true"] .thought-label { animation: none; }
+}
+@supports (corner-shape: squircle) {
+  .storefront .composer-card { border-radius: 2.5rem; }
+}

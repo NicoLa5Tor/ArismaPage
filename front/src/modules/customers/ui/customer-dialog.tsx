@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { departmentName } from "../../shared/domain/colombia"
 import { FileText, IdentificationCard, MapPin, Receipt, Heart } from "@phosphor-icons/react"
 import { fullName } from "../domain/customers"
 import { count, date, money, plural } from "../../shared/ui/format"
@@ -10,6 +11,7 @@ import { useSession } from "../../shared/ui/admin-context"
 import { OrderBadge, PAYMENT } from "../../sales/ui/labels"
 import { QuoteBadge } from "../../quotes/ui/labels"
 import { useCustomersPort } from "./use-customers"
+import { useStoreProfile } from "../../shared/ui/store-profile"
 
 type Tab = "orders" | "favorites" | "quotes" | "data"
 const DOC: Record<string, string> = { cc: "Cédula", NIT: "NIT", extranjeria: "Cédula de extranjería" }
@@ -21,6 +23,7 @@ function since(iso: string | null) {
 }
 
 export function CustomerDialog({ id, onClose }: { id: string; onClose: () => void }) {
+  const profile = useStoreProfile()
   const api = useCustomersPort()
   const { openOrder, openQuote, openProduct } = useSession()
   const customer = useLoad(() => api.get(id), [id])
@@ -37,7 +40,7 @@ export function CustomerDialog({ id, onClose }: { id: string; onClose: () => voi
         <Stat label="Ticket promedio" value={c.paidOrders ? money(avg) : "—"} />
         <Stat label="Última compra" value={c.lastOrderAt ? date(c.lastOrderAt) : "—"} hint={since(c.lastOrderAt)} />
       </div>
-      <ContactActions email={c.email} phone={c.phone} message={`Hola ${c.firstName}, te escribimos de Arisma.`} />
+      <ContactActions email={c.email} phone={c.phone} message={`Hola ${c.firstName}, te escribimos de ${profile.shortName}.`} />
       <Tabs label="Información del cliente" value={tab} onChange={setTab} tabs={[{ id: "orders", label: "Pedidos", badge: c.orders.length }, { id: "favorites", label: "Lo que más compra" }, { id: "quotes", label: "Cotizaciones", badge: c.quotes.length || undefined }, { id: "data", label: "Datos" }]} />
 
       <TabPanel active={tab === "orders"}>{c.orders.length === 0 ? <Empty icon={Receipt} title="Este cliente aún no tiene pedidos" /> :
@@ -61,8 +64,11 @@ export function CustomerDialog({ id, onClose }: { id: string; onClose: () => voi
           <Row label="Documento">{c.documentNumber && <span className="flex items-center gap-2">{DOC[c.documentType ?? ""] ?? c.documentType} {c.documentNumber}<CopyButton value={c.documentNumber} label="documento" /></span>}</Row>
           <Row label="Empresa">{c.company}</Row><Row label="Correo">{c.email && <span className="flex items-center gap-2"><span className="truncate">{c.email}</span><CopyButton value={c.email} label="correo" /></span>}</Row>
           <Row label="Teléfono">{c.phone && <span className="flex items-center gap-2">{c.phone}<CopyButton value={c.phone} label="teléfono" /></span>}</Row></dl></Panel>
-        {c.addresses.map(a => <Panel key={a.kind} icon={MapPin} title={a.kind === "billing" ? "Dirección de facturación" : "Dirección de envío"}><dl className="glass-rows">
-          <Row label="Recibe">{[a.firstName, a.lastName].filter(Boolean).join(" ")}</Row><Row label="Dirección">{[a.line1, a.line2].filter(Boolean).join(", ")}</Row><Row label="Ciudad">{[a.city, a.state].filter(Boolean).join(", ")}</Row><Row label="Teléfono">{a.phone}</Row></dl></Panel>)}
+        {(c.book ?? []).map(a => <Panel key={a.id} icon={MapPin} title={`${a.label === "casa" ? "Casa" : a.label === "trabajo" ? "Trabajo" : "Otra dirección"}${a.isDefault ? " · predeterminada" : ""}`}><dl className="glass-rows">
+          <Row label="Recibe">{a.recipient}</Row><Row label="Dirección">{[a.street, a.detail].filter(Boolean).join(", ")}</Row><Row label="Barrio">{a.neighborhood}</Row>
+          <Row label="Ciudad">{[a.city, departmentName(a.state)].filter(Boolean).join(", ")}</Row><Row label="Teléfono">{a.phone}</Row><Row label="Indicaciones">{a.instructions}</Row></dl></Panel>)}
+        {c.addresses.map(a => <Panel key={a.kind} icon={MapPin} title={a.kind === "billing" ? "Dirección de facturación (tienda anterior)" : "Dirección de envío (tienda anterior)"}><dl className="glass-rows">
+          <Row label="Recibe">{[a.firstName, a.lastName].filter(Boolean).join(" ")}</Row><Row label="Dirección">{[a.line1, a.line2].filter(Boolean).join(", ")}</Row><Row label="Ciudad">{[a.city, departmentName(a.state)].filter(Boolean).join(", ")}</Row><Row label="Teléfono">{a.phone}</Row></dl></Panel>)}
       </div></TabPanel>
     </div>}
   </Dialog>

@@ -2,11 +2,13 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { ChartBar, Receipt, Users, FileText, Package, Tag, Stack, Ticket, Percent, SignOut, List, SquaresFour, UsersThree, X, type Icon } from "@phosphor-icons/react"
+import { ChatsCircle, Storefront, ChartBar, Receipt, Users, FileText, Package, Tag, Stack, Ticket, Percent, SignOut, List, SquaresFour, UsersThree, X, type Icon } from "@phosphor-icons/react"
 import type { Permission } from "../../shared/domain/permission"
 import { Avatar } from "../../shared/ui/rich"
+import { BRAND_ICON } from "../../shared/domain/brand-assets"
+import { useStoreProfile } from "../../shared/ui/store-profile"
 
-export type AdminSection = "summary" | "orders" | "customers" | "quotes" | "products" | "categories" | "inventory" | "coupons" | "settings" | "users"
+export type AdminSection = "summary" | "orders" | "customers" | "quotes" | "products" | "categories" | "inventory" | "coupons" | "settings" | "users" | "reviews" | "store"
 /** Sections with their URL slug (?seccion=pedidos), so reloads and shared links keep the place. */
 /** Sections a role cannot use are hidden (permission); the backend rejects their writes anyway. */
 export const SECTIONS: { id: AdminSection; slug: string; label: string; title: string; subtitle: string; icon: Icon; group: "sales" | "catalog" | "admin"; permission?: Permission }[] = [
@@ -18,6 +20,8 @@ export const SECTIONS: { id: AdminSection; slug: string; label: string; title: s
   { id: "categories", slug: "categorias", label: "Categorías", title: "Categorías", subtitle: "Organiza las categorías de tu tienda", icon: Tag, group: "catalog" },
   { id: "inventory", slug: "inventario", label: "Inventario", title: "Inventario", subtitle: "Movimientos de existencias y productos por reponer", icon: Stack, group: "catalog" },
   { id: "coupons", slug: "cupones", label: "Cupones", title: "Cupones", subtitle: "Descuentos y su uso real", icon: Ticket, group: "catalog" },
+  { id: "reviews", slug: "opiniones", label: "Opiniones", title: "Opiniones y preguntas", subtitle: "Lo que dicen y preguntan tus clientes", icon: ChatsCircle, group: "catalog" },
+  { id: "store", slug: "tienda", label: "Tienda", title: "Ajustes de la tienda", subtitle: "Pagos, envíos, conversaciones y página de producto", icon: Storefront, group: "admin", permission: "SETTINGS_MANAGE" },
   { id: "users", slug: "usuarios", label: "Usuarios", title: "Usuarios", subtitle: "Quién entra al panel y qué puede hacer", icon: UsersThree, group: "admin", permission: "USERS_MANAGE" },
   { id: "settings", slug: "impuestos", label: "Impuestos", title: "Impuestos", subtitle: "Tasas de IVA que usan tus productos", icon: Percent, group: "admin", permission: "TAXES_MANAGE" },
 ]
@@ -28,10 +32,15 @@ type Props = { section: AdminSection; onSectionChange: (section: AdminSection) =
  * Phone and tablet: the sidebar is an off-canvas drawer opened from the menu button; content scrolls with the page.
  */
 export function AdminShell({ section, onSectionChange, onLogout, aside, children, user, onAccount }: Props) {
+  const profile = useStoreProfile()
   const [wide, setWide] = useState(false)
   const [side, setSide] = useState(true)
   const [drawer, setDrawer] = useState(false)
-  const [widgets, setWidgets] = useState(true)
+  // The pending widgets stay out of the way where the work needs the width (Pedidos repeats their counts in its tabs);
+  // the button shows or hides them per section.
+  const [hiddenWidgets, setHiddenWidgets] = useState<Set<AdminSection>>(() => new Set<AdminSection>(["orders"]))
+  const widgets = !hiddenWidgets.has(section)
+  const setWidgets = (show: boolean) => setHiddenWidgets(prev => { const next = new Set(prev); if (show) next.delete(section); else next.add(section); return next })
   const scene = useRef<HTMLDivElement>(null)
   const menuButton = useRef<HTMLButtonElement>(null)
   const firstItem = useRef<HTMLButtonElement>(null)
@@ -74,7 +83,7 @@ export function AdminShell({ section, onSectionChange, onLogout, aside, children
     {!wide && <div className="glass-scrim" data-open={drawer} aria-hidden="true" onClick={() => setDrawer(false)} />}
     <div ref={scene} className={`glass-space${side ? "" : " glass-no-side"}${widgets ? "" : " glass-no-right"}`}>
       <aside id="admin-nav" className="glass-window glass-side" data-open={drawer} aria-label="Navegación administrativa" inert={sideHidden || undefined}>
-        <div className="glass-workspace"><Image src="/brand/favicon-arisma.png" alt="" width={48} height={48} /><div><strong>Arisma</strong><span>Administración</span></div>
+        <div className="glass-workspace"><Image src={BRAND_ICON} alt="" width={48} height={48} /><div><strong>{profile.shortName}</strong><span>Administración</span></div>
           {!wide && <button type="button" className="glass-round ml-auto" aria-label="Cerrar menú" onClick={() => setDrawer(false)}><X size={18} aria-hidden="true" /></button>}</div>
         <nav className="glass-nav" aria-label="Secciones del panel">
           <div className="glass-nav-group">

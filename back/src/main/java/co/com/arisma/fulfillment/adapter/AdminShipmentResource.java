@@ -17,6 +17,7 @@ import java.util.*;
 public class AdminShipmentResource {
     @Inject FulfillmentQueries queries;
     @Inject FulfillmentService service;
+    @Inject co.com.arisma.fulfillment.application.TrackingService tracking;
     @Context jakarta.ws.rs.container.ContainerRequestContext context;
     public record Move(String status, String carrier, String trackingCode, UUID courierUserId, String courierName, String recipientName, String reason, String note) {
         Shipment.Details details() { return new Shipment.Details(carrier, trackingCode, courierUserId, courierName, recipientName, reason); }
@@ -32,6 +33,11 @@ public class AdminShipmentResource {
     @Requires(Permission.FULFILLMENT_MANAGE) @PUT public Map<String,Object> reroute(@PathParam("orderId") UUID id, Reroute in) {
         if (in == null) throw new IllegalArgumentException("Indica el método de entrega");
         service.reroute(id, DeliveryMethod.parse(in.method()), new Shipment.Details(in.carrier(), in.trackingCode(), in.courierUserId(), in.courierName(), null, null), actor());
+        return get(id);
+    }
+    /** Asks the carrier now instead of waiting for the next round; starts following the guide if it was not yet. */
+    @Requires(Permission.FULFILLMENT_MANAGE) @POST @Path("/tracking") public Map<String,Object> track(@PathParam("orderId") UUID id) {
+        tracking.refresh(id);
         return get(id);
     }
     private UUID actor() { return (UUID) context.getProperty("adminUser"); }

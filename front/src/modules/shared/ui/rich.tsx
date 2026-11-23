@@ -5,6 +5,7 @@ import { Check, Copy, EnvelopeSimple, ImageSquare, Minus, Phone, Plus, WhatsappL
 import type { ImageRef } from "../domain/image"
 import type { MediaPort } from "../application/media-port"
 import { usePort } from "./admin-context"
+import { optimized } from "./optimized-image"
 
 export const useMedia = () => usePort<MediaPort>("media")
 
@@ -14,7 +15,7 @@ export function Thumb({ image, alt = "", size = 48 }: { image: ImageRef | null; 
   const src = image ? media.src(image) : null
   const [failed, setFailed] = useState(false)
   return <span className="glass-thumb" style={{ width: size, height: size }}>
-    {src && !failed ? <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <ImageSquare size={Math.round(size / 2.4)} aria-hidden="true" />}
+    {src && !failed ? <img {...optimized(src, { sizes: `${size}px`, width: size })} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <ImageSquare size={Math.round(size / 2.4)} aria-hidden="true" />}
   </span>
 }
 

@@ -19,6 +19,14 @@ public class PostgresCoupons implements CouponRepository {
 
     public List<Map<String,Object>> list() { return Jdbc.with(db,c -> Jdbc.list(c,SELECT+" ORDER BY k.active DESC,k.created_at DESC")); }
     public Optional<Map<String,Object>> find(UUID id) { return Jdbc.with(db,c -> Jdbc.one(c,SELECT+" WHERE k.id=?",id)); }
+    public Optional<Coupon> findByCode(String code) {
+        return Jdbc.with(db,c -> Jdbc.one(c,"SELECT id,code,kind,amount,minimum_amount,maximum_amount,usage_limit,usage_limit_per_customer,individual_use,free_shipping,exclude_sale_items,expires_at,active,description FROM coupon WHERE lower(code)=lower(?)",code)
+            .map(r -> new Coupon((UUID)r.get("id"),(String)r.get("code"),Coupon.Kind.valueOf(((String)r.get("kind")).toUpperCase(Locale.ROOT)),(java.math.BigDecimal)r.get("amount"),(java.math.BigDecimal)r.get("minimumAmount"),(java.math.BigDecimal)r.get("maximumAmount"),
+                (Integer)r.get("usageLimit"),(Integer)r.get("usageLimitPerCustomer"),(Boolean)r.get("individualUse"),(Boolean)r.get("freeShipping"),(Boolean)r.get("excludeSaleItems"),(java.time.Instant)r.get("expiresAt"),(Boolean)r.get("active"),(String)r.get("description"))));
+    }
+    public long usesHeld(UUID couponId, String email) {
+        return Jdbc.with(db,c -> Jdbc.count(c,"SELECT count(DISTINCT o.id) AS n FROM order_discount d JOIN sales_order o ON o.id=d.order_id WHERE d.coupon_id=? AND o.status NOT IN ('cancelled','failed','refunded') AND (?::text IS NULL OR lower(o.billing->>'email')=lower(?))",couponId,email,email));
+    }
     public void insert(Coupon k) { write("INSERT INTO coupon(code,kind,amount,minimum_amount,maximum_amount,usage_limit,usage_limit_per_customer,individual_use,free_shipping,exclude_sale_items,expires_at,active,description,id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",k); }
     public boolean update(Coupon k) { return write("UPDATE coupon SET "+COLUMNS+",updated_at=now() WHERE id=?",k)>0; }
     private int write(String sql, Coupon k) {

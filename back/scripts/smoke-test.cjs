@@ -26,6 +26,28 @@ async function main(){
     for(const img of promoted){ const del=await fetch(`${url}/products/${productId}/images/${img.id}`,{method:'DELETE',headers:{cookie,'X-CSRF-Token':csrf}}); if(!del.ok) throw Error(`Image delete failed ${del.status}`) }
   }
   const list=await fetch(url+'/products?q='+encodeURIComponent(`smoke-${id}`),{headers:{cookie}}); if(!list.ok) throw Error(`List failed ${list.status}`)
+  // Search profile: keywords come back cleaned, a broken age range is refused, and a write needs the CSRF token.
+  const profile=body=>fetch(`${url}/products/${productId}/search`,{method:'PUT',headers:{cookie,'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(body)})
+  const kept=await profile({keywords:['  Puzzle ','puzzle','Armar  piezas'],ageMin:4,ageMax:7}); if(!kept.ok) throw Error(`Search profile save failed ${kept.status}: ${await kept.text()}`)
+  const read=await (await fetch(`${url}/products/${productId}/search`,{headers:{cookie}})).json()
+  if(read.keywords.join('|')!=='armar piezas|puzzle' || read.ageMin!==4 || read.ageMax!==7 || !Array.isArray(read.inheritedKeywords)) throw Error(`Search profile was not stored as expected: ${JSON.stringify(read)}`)
+  if((await profile({keywords:['<b>x</b>'],ageMin:null,ageMax:null})).status!==400) throw Error('A keyword with markup was accepted')
+  if((await profile({keywords:[],ageMin:9,ageMax:3})).status!==400) throw Error('An inverted age range was accepted')
+  if((await fetch(`${url}/products/${productId}/search`,{method:'PUT',headers:{cookie,'Content-Type':'application/json'},body:'{}'})).status!==401) throw Error('Search profile change without CSRF was accepted')
+  // A category's profile is inherited by its products; the original values are put back afterwards.
+  const cat=(await db.query("SELECT id FROM category WHERE slug<>'uncategorized' ORDER BY name LIMIT 1")).rows[0]
+  if(cat){
+    const before=await (await fetch(`${url}/categories/${cat.id}/search`,{headers:{cookie}})).json()
+    const putCat=body=>fetch(`${url}/categories/${cat.id}/search`,{method:'PUT',headers:{cookie,'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(body)})
+    try{
+      await db.query('INSERT INTO product_category(product_id,category_id) VALUES($1,$2)',[productId,cat.id])
+      const saved=await putCat({keywords:[...before.keywords,'smoke clave'],ageMin:3,ageMax:6}); if(!saved.ok) throw Error(`Category search save failed ${saved.status}: ${await saved.text()}`)
+      const seen=await (await fetch(`${url}/products/${productId}/search`,{headers:{cookie}})).json()
+      if(!seen.inheritedKeywords.includes('smoke clave') || seen.inheritedAgeMin!==3 || seen.inheritedAgeMax!==6) throw Error(`Product did not inherit the category profile: ${JSON.stringify(seen)}`)
+    } finally {
+      const restored=await putCat({keywords:before.keywords,ageMin:before.ageMin,ageMax:before.ageMax}); if(!restored.ok) throw Error(`Category search restore failed ${restored.status}`)
+    }
+  }
   const audit=await db.query('SELECT count(*)::int AS n FROM inventory_adjustment WHERE product_id=$1',[productId]); if(audit.rows[0].n!==1) throw Error(`Inventory adjustment was not recorded (${audit.rows[0].n})`)
   // Sales: a throwaway order whose cancellation must return its reduced stock.
   const get=async path=>{const r=await fetch(url+path,{headers:{cookie}}); if(!r.ok) throw Error(`GET ${path} failed ${r.status}: ${await r.text()}`); return r.json()}
@@ -74,7 +96,7 @@ async function main(){
   let last; for(let i=0;i<5;i++) last=await fetch(url+'/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:sellerEmail,password:'incorrecta-'+i})})
   if(last.status!==429) throw Error(`Expected lockout 429, got ${last.status}`)
   await db.query('DELETE FROM order_note WHERE order_id=$1',[orderId]); await db.query('DELETE FROM admin_user WHERE email=$1',[sellerEmail])
-  const logout=await fetch(url+'/session',{method:'DELETE',headers:{cookie,'X-CSRF-Token':csrf}}); if(logout.status!==204) throw Error(`Logout failed ${logout.status}`)
+  const logout=await fetch(url+'/session',{method:'DELETE',headers:{cookie,'X-CSRF-Token':csrf}}); if(logout.status!==200) throw Error(`Logout failed ${logout.status}`); const logoutBody = await logout.json(); if (!logoutBody.redirectUrl?.includes("/oidc/session/end")) throw Error("Logto logout redirect missing")
   console.log('Smoke test passed: authentication, CSRF, roles, forced password change, lockout, deliveries, product creation, inventory audit, orders, restock on cancel, reports, logout')
 }
 main().catch(e=>{console.error(e.message);process.exitCode=1}).finally(async()=>{try{for(const o of extraOrders) await db.query('DELETE FROM sales_order WHERE id=$1',[o]);if(orderId){await db.query('DELETE FROM inventory_adjustment WHERE order_line_id IN (SELECT id FROM order_line WHERE order_id=$1)',[orderId]);await db.query('DELETE FROM order_status_history WHERE order_id=$1',[orderId]);await db.query('DELETE FROM sales_order WHERE id=$1',[orderId])}if(productId){await db.query('DELETE FROM inventory_adjustment WHERE product_id=$1',[productId]);await db.query('DELETE FROM product WHERE id=$1',[productId])}await db.query("DELETE FROM admin_user WHERE email LIKE 'seller-%@example.invalid' AND created_by=$1",[id]);await db.query('DELETE FROM admin_user WHERE id=$1',[id]);if(objectKey) console.log(`Test object for cleanup: ${objectKey}`)}finally{await db.end()}})

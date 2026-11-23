@@ -1,0 +1,34 @@
+/* Legal pages: the store's terms and data policy, long text that has to stay easy to read and to jump through. */
+@layer components {
+  .legal-hero { @apply mx-auto w-full max-w-6xl px-4 pt-12 pb-8 sm:px-8 lg:pt-16; }
+  .legal-hero h1 { @apply mt-2 max-w-3xl text-3xl font-semibold sm:text-5xl; color: var(--ink); }
+  .legal-owner { @apply mt-4 text-sm font-semibold text-neutral-600; }
+
+  .legal-layout { @apply mx-auto grid w-full max-w-6xl gap-8 px-4 pb-24 sm:px-8 lg:gap-12; }
+  .legal-layout.has-contents { @apply lg:grid-cols-[16rem_minmax(0,1fr)]; }
+  .legal-contents { @apply self-start rounded-3xl border border-stone-200 bg-white p-4 lg:sticky lg:top-24; }
+  .legal-contents h2 { @apply px-2 text-xs font-semibold tracking-wide text-neutral-500 uppercase; }
+  .legal-contents ol { @apply mt-2 flex flex-col; }
+  .legal-contents a { @apply flex min-h-11 items-center rounded-2xl px-2 py-2 text-sm font-medium text-neutral-700 no-underline transition-colors duration-300 hover:bg-stone-100 active:bg-stone-200 focus-visible:outline-2; color: var(--ink); outline-color: var(--brand-pink-strong); }
+
+  .legal-body { @apply min-w-0 max-w-3xl text-base leading-relaxed text-neutral-700; }
+  .legal-body > * + * { @apply mt-4; }
+  .legal-body h2 { @apply mt-12 scroll-mt-32 text-2xl font-semibold first:mt-0 lg:scroll-mt-24; color: var(--ink); }
+  .legal-body h3 { @apply mt-12 scroll-mt-32 text-xl font-semibold lg:scroll-mt-24; color: var(--ink); }
+  .legal-body h2 + *, .legal-body h3 + * { @apply mt-2; }
+  .legal-body p { white-space: pre-line; }
+  .legal-body ul { @apply flex list-disc flex-col gap-2 pl-6; }
+  .legal-body li::marker { color: var(--brand-pink-strong); }
+
+  .legal-documents { @apply mt-12 flex flex-col gap-4; }
+  .legal-documents h2 { @apply mt-0; }
+  .legal-document { @apply overflow-hidden rounded-3xl border border-stone-200 bg-white; }
+  .legal-document figcaption { @apply flex items-center gap-4 p-4; }
+  .legal-document-icon { @apply grid size-12 shrink-0 place-items-center rounded-2xl bg-stone-100; color: var(--brand-pink-strong); }
+  .legal-document-name { @apply min-w-0 flex-1 font-semibold; color: var(--ink); }
+  .legal-document-open { @apply hidden min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold no-underline transition-colors duration-300 hover:bg-stone-100 focus-visible:outline-2 sm:inline-flex; color: var(--brand-pink-strong); outline-color: var(--brand-pink-strong); }
+  .legal-document-save { @apply grid size-11 shrink-0 place-items-center rounded-full bg-neutral-900 text-white transition-colors duration-300 hover:bg-neutral-700 active:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .legal-document-frame { @apply hidden h-[80vh] w-full border-0 bg-stone-100 sm:block; }
+
+  .legal-next { @apply mt-16; }
+}

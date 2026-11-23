@@ -22,6 +22,7 @@ public class FulfillmentService {
     @Inject ShipmentRepository shipments;
     @Inject OrderLifecycle orders;
     @Inject FulfillmentService self;
+    @Inject jakarta.enterprise.event.Event<ShipmentMoved> moved;
     Clock clock = Clock.systemUTC();
 
     @Transactional
@@ -32,6 +33,7 @@ public class FulfillmentService {
         shipments.save(after, actor);
         shipments.recordEvent(after.id(), before.status(), next, actor, describe(after, note));
         if (next == FulfillmentStatus.DELIVERED) orders.completeOnDelivery(orderId, actor);
+        moved.fire(new ShipmentMoved(orderId, next, after.carrier(), after.trackingCode()));
     }
     @Transactional
     public void reroute(UUID orderId, DeliveryMethod method, Shipment.Details details, UUID actor) {

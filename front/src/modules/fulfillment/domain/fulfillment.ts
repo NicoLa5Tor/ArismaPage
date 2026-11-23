@@ -1,7 +1,8 @@
 import type { ImageRef } from "../../shared/domain/image"
+import { CARRIER_LIST, type TrackingEvent, type TrackingStage } from "../../shared/domain/carriers"
 
-export type DeliveryStatus = "pending" | "packed" | "shipped" | "delivered" | "failed" | "returned" | "cancelled"
-export type DeliveryMethod = "carrier" | "courier" | "pickup"
+import type { DeliveryMethod, DeliveryStatus } from "../../shared/domain/statuses"
+export type { DeliveryMethod, DeliveryStatus }
 /** Same transitions as back/.../fulfillment/domain/FulfillmentStatus.java. */
 const NEXT: Record<DeliveryStatus, DeliveryStatus[]> = {
   pending: ["packed", "shipped", "delivered"], packed: ["pending", "shipped", "delivered"], shipped: ["delivered", "failed"],
@@ -28,13 +29,18 @@ export function missing(next: DeliveryStatus, method: DeliveryMethod, d: MoveDet
   if (next === "failed" && !d.reason?.trim()) return "Cuéntanos por qué no se entregó"
   return null
 }
-export const CARRIERS = ["Servientrega", "Interrapidísimo", "Coordinadora", "Envía", "TCC", "Deprisa", "Domina", "4-72"]
+export const CARRIERS = [...CARRIER_LIST.map(c => c.label), "Domina"]
+
+/** Automatic tracking of one carrier shipment. state "rejected" carries the reason in error. */
+export type ShipmentTracking = { state: "following" | "rejected" | "finished"; stage: TrackingStage | null; stageLabel: string | null; error: string | null; checkedAt: string | null; changedAt: string | null; events: TrackingEvent[] }
+/** The store's switch, its plan and this month's use (limit shipments a month, Bogotá time). ready: the server has the provider's key. */
+export type TrackingStatus = { enabled: boolean; ready: boolean; plan: "free" | "plus"; planLabel: string; limit: number; used: number; remaining: number; month: string }
 
 export type MoveDetails = { carrier?: string; trackingCode?: string; courierUserId?: string | null; courierName?: string; recipientName?: string; reason?: string; note?: string }
 export type ShipmentEvent = { id: string; fromStatus: DeliveryStatus | null; toStatus: DeliveryStatus; note: string; createdAt: string; actor: string | null }
 export type Shipment = { id: string; method: DeliveryMethod; status: DeliveryStatus; carrier: string | null; trackingCode: string | null; courierUserId: string | null; courier: string | null
   recipientName: string | null; failureReason: string | null; packedAt: string | null; shippedAt: string | null; deliveredAt: string | null; updatedAt: string; updatedBy: string | null
-  paid: boolean; cashOnDelivery: boolean; events: ShipmentEvent[] }
+  paid: boolean; cashOnDelivery: boolean; events: ShipmentEvent[]; tracking: ShipmentTracking | null }
 export type BoardCard = ImageRef & { orderId: string; number: string; stage: "to_prepare" | "packed" | "shipped" | "issue"; status: DeliveryStatus; method: DeliveryMethod; carrier: string | null; trackingCode: string | null; courier: string | null; failureReason: string | null
   updatedAt: string; placedAt: string; total: number; orderStatus: string; paymentMethod: string | null; paid: boolean; customerName: string | null; city: string | null; phone: string | null; units: number; lines: number }
 export type Board = { cards: BoardCard[]; counts: Record<string, number>; stale: number; staleDays: number; deliveredToday: number }

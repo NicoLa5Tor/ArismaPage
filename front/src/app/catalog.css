@@ -1,0 +1,140 @@
+/* Catálogo público (/productos). Hereda de .storefront: Poppins, rosado de marca y la curva --ease-out.
+   Los cuatro colores del logo Arisma Didácticos marcan cada categoría, como etiquetas de cajas de juguetes. */
+@layer components {
+  .storefront { --tone-pink: #ff1850; --tone-blue: #29aae2; --tone-orange: #fd931f; --tone-green: #79c942; --ink: #1d1a23; }
+  [data-tone="pink"] { --tone: var(--tone-pink); --on-tone: #fff; }
+  [data-tone="blue"] { --tone: var(--tone-blue); --on-tone: var(--ink); }
+  [data-tone="orange"] { --tone: var(--tone-orange); --on-tone: var(--ink); }
+  [data-tone="green"] { --tone: var(--tone-green); --on-tone: var(--ink); }
+  [data-tone="ink"] { --tone: var(--ink); --on-tone: #fff; }
+
+  .catalog { @apply min-h-svh bg-stone-100; color: var(--ink); }
+  .catalog .spin { animation: spin 1s linear infinite; }
+  .catalog h1, .catalog h2, .catalog h3 { @apply tracking-tight; text-wrap: balance; }
+  .catalog p { text-wrap: pretty; }
+
+
+  .catalog-top { @apply mx-auto flex max-w-7xl flex-col gap-12 px-4 pt-8 sm:px-8; }
+
+
+
+  /* Pestañas de categorías, fijas bajo el encabezado */
+  .category-tabs { @apply sticky top-16 z-20 mt-8 border border-x-0 border-t-0 border-stone-200 bg-stone-100/90 backdrop-blur; }
+  .category-tabs-row { @apply mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2 sm:px-8; scrollbar-width: none; }
+  .category-tab { @apply relative isolate inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap text-neutral-600 transition-colors duration-200 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--tone); }
+  .category-tab svg { color: var(--tone); }
+  .category-tab[aria-current="true"] { @apply font-semibold; color: var(--on-tone); }
+  .category-tab[aria-current="true"] svg { color: currentColor; }
+  .category-tab-active { @apply absolute inset-0 -z-10 rounded-full; background: var(--tone); }
+
+  /* Cuerpo: barra lateral + resultados */
+  .catalog-body { @apply mx-auto grid max-w-7xl scroll-mt-32 gap-8 px-4 py-8 sm:px-8 lg:grid-cols-4; }
+  .catalog-aside { @apply hidden lg:sticky lg:top-32 lg:block lg:self-start lg:overflow-y-auto; scrollbar-width: thin; }
+  @media (width >= 64rem) { .catalog-aside { max-height: calc(100svh - 9rem); } }
+  .catalog-results { @apply flex min-w-0 flex-col gap-4 lg:col-span-3; }
+
+  .category-sidebar { @apply flex flex-col gap-8 pb-8; }
+  .sidebar-title { @apply mb-2 px-2 text-xs font-semibold tracking-widest text-neutral-500 uppercase; }
+  .tree { @apply flex flex-col gap-1; }
+  .tree-item, .tree-sub { @apply flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm transition-colors duration-200 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-1; outline-color: var(--brand-pink-strong); }
+  .tree-item { @apply font-medium; }
+  .tree-item[aria-current="true"], .tree-item[aria-expanded="true"] { @apply bg-white font-semibold shadow-sm; }
+  .tree-dot { @apply size-2 shrink-0 rounded-full; background: var(--tone); }
+  .tree-name { @apply min-w-0 flex-1 truncate; }
+  .tree-count { @apply text-xs font-medium text-neutral-400 tabular-nums; }
+  .tree-caret { @apply shrink-0 text-neutral-400 transition-transform duration-300; }
+  .tree-item[aria-expanded="true"] .tree-caret { @apply rotate-90; }
+  .tree-children { @apply ml-4 flex flex-col gap-1 overflow-hidden border border-y-0 border-r-0 border-stone-200 pl-2; }
+  .tree-sub { @apply text-neutral-600; }
+  .tree-sub[aria-current="true"] { @apply bg-white font-semibold shadow-sm; color: var(--ink); }
+
+  .sidebar-toggles { @apply flex flex-col gap-1; }
+  .switch { @apply flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors hover:bg-white focus-visible:outline-2; outline-color: var(--brand-pink-strong); }
+  .switch > span:nth-child(2) { @apply flex-1; }
+  .switch-track { @apply relative h-6 w-10 shrink-0 rounded-full bg-stone-300 transition-colors duration-200; }
+  .switch-thumb { @apply absolute top-1 left-1 size-4 rounded-full bg-white shadow transition-transform duration-200; transition-timing-function: var(--ease-out); }
+  .switch[aria-checked="true"] .switch-track { background: var(--brand-pink-strong); }
+  .switch[aria-checked="true"] .switch-thumb { @apply translate-x-4; }
+
+  /* Barra de resultados */
+  .results-bar { @apply flex flex-wrap items-center justify-between gap-2; }
+  .results-count { @apply flex items-center gap-2 text-sm text-neutral-600; }
+  .results-count strong { @apply text-base font-semibold tabular-nums; color: var(--ink); }
+  .results-corrected { @apply text-sm text-neutral-600; text-wrap: pretty; }
+  .results-corrected strong { @apply font-semibold; color: var(--ink); }
+  .results-corrected button { @apply rounded font-medium underline underline-offset-4 transition-colors; color: var(--ink); }
+  .results-corrected button:hover { @apply text-neutral-500; }
+  .results-corrected button:active { @apply opacity-70; }
+  .results-corrected button:focus-visible { @apply outline-2 outline-offset-2; outline-color: var(--ink); }
+  .results-actions { @apply flex items-center gap-2; }
+  .filters-button { @apply inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden; outline-color: var(--brand-pink-strong); }
+  .filters-badge { @apply grid size-5 place-items-center rounded-full text-xs text-white; background: var(--brand-pink-strong); }
+  .sort { @apply inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white py-2 pr-2 pl-4 text-sm focus-within:ring-2; --tw-ring-color: var(--brand-pink-strong); }
+  .sort-label { @apply hidden text-neutral-500 sm:inline; }
+  .sort select { @apply cursor-pointer bg-transparent font-semibold outline-none; }
+  .active-filters { @apply flex flex-wrap items-center gap-2; }
+  .active-filter { @apply inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-1 text-sm font-medium text-white transition-colors hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .clear { @apply rounded-full px-2 py-1 text-sm font-semibold underline underline-offset-4 hover:text-neutral-600 focus-visible:outline-2; }
+
+  /* Hoja de filtros (celular) */
+  .sheet-root { @apply fixed inset-0 z-50 flex items-end lg:hidden; }
+  .sheet-backdrop { @apply absolute inset-0 bg-neutral-950/40; }
+  .sheet { @apply relative flex w-full flex-col rounded-t-3xl bg-stone-100 shadow-2xl; max-height: 85svh; }
+  .sheet-head { @apply relative flex items-center justify-between px-4 pt-8 pb-2; }
+  .sheet-grip { @apply absolute top-2 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-stone-300; }
+  .sheet-head h2 { @apply text-lg font-semibold; }
+  .sheet-close { @apply rounded-full p-2 hover:bg-white focus-visible:outline-2; }
+  .sheet-body { @apply overflow-y-auto px-2; }
+  .sheet-foot { @apply border border-x-0 border-b-0 border-stone-200 p-4; }
+  .sheet-apply { @apply w-full justify-center; }
+
+  /* Rejilla y tarjeta (adaptado de 21st.dev Product Card) */
+  .product-grid { @apply grid grid-cols-2 gap-4 sm:grid-cols-3; }
+  .product-card { @apply flex flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white transition-shadow duration-300 hover:shadow-xl; }
+  .product-card-media { @apply relative m-2 aspect-square overflow-hidden rounded-2xl bg-white; }
+  .product-card-media img { @apply size-full object-contain p-2 transition-transform duration-500; transition-timing-function: var(--ease-out); }
+  .product-card:hover .product-card-media img { @apply scale-105; }
+  .product-card-placeholder { @apply grid size-full place-items-center bg-stone-100 text-stone-400; }
+  .product-card-badges { @apply absolute top-2 left-2 flex flex-col items-start gap-2; }
+  .badge { @apply rounded-full px-2 py-1 text-xs font-semibold; }
+  .badge-sale { @apply text-white; background: var(--brand-pink-strong); }
+  .badge-featured { @apply text-neutral-900; background: var(--tone-orange); }
+  .badge-muted { @apply bg-neutral-800 text-white; }
+  .product-card-body { @apply flex flex-1 flex-col gap-2 px-4 pt-2 pb-4; }
+  .product-card-body h3 { @apply line-clamp-2 min-h-10 text-sm leading-5 font-medium sm:min-h-12 sm:text-base sm:leading-6; letter-spacing: 0; }
+  .product-card-price { @apply mt-auto flex flex-wrap items-baseline gap-2 tabular-nums; }
+  .product-card-price strong { @apply text-lg font-semibold; }
+  .product-card-price s { @apply text-sm text-neutral-400; }
+  .product-card-quote { @apply text-sm font-medium text-neutral-500; }
+  .product-card-action { @apply mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white no-underline transition-colors duration-300 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700; }
+  .product-card-action[data-sent="true"] { @apply bg-neutral-900; }
+
+  .product-card.is-skeleton .product-card-media { @apply animate-pulse bg-stone-100; }
+  .skeleton-line { @apply block h-4 w-full animate-pulse rounded-full bg-stone-100; }
+  .skeleton-line.short { @apply w-1/2; }
+  .skeleton-button { @apply mt-2 block h-10 animate-pulse rounded-2xl bg-stone-100; }
+
+  .load-more { @apply flex flex-col items-center gap-2 pt-12 text-sm text-neutral-500; }
+  .button-secondary { @apply inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-8 py-4 text-base font-semibold no-underline transition-colors duration-300 hover:bg-stone-50 active:bg-stone-100 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2; color: var(--ink); outline-color: var(--brand-pink-strong); }
+
+  .catalog-state { @apply mx-auto flex max-w-xl flex-col items-center gap-4 rounded-3xl border border-stone-200 bg-white px-8 py-12 text-center; }
+  .catalog-state h2 { @apply text-2xl font-semibold; }
+  .catalog-state p { @apply text-neutral-600; }
+  .catalog-state-actions { @apply flex flex-wrap justify-center gap-2; }
+
+  /* Confianza */
+  .trust-strip { @apply mx-auto grid max-w-7xl gap-4 px-4 py-16 sm:grid-cols-2 sm:px-8 lg:grid-cols-4; }
+  .trust { @apply flex flex-col gap-2 rounded-3xl border border-stone-200 bg-white p-8; }
+  .trust svg { color: var(--brand-pink-strong); }
+  .trust h3 { @apply text-lg font-semibold; }
+  .trust p { @apply text-sm text-neutral-600; }
+
+  .catalog .final-cta .button-primary { @apply bg-emerald-600 hover:bg-emerald-700; }
+}
+
+/* Esquinas "squircle" (CSS corner-shape): más suaves que un redondeo normal. Donde no hay soporte queda el redondeo de siempre. */
+@supports (corner-shape: squircle) {
+  .storefront .squircle { corner-shape: squircle; }
+  .storefront .product-card, .storefront .trust, .storefront .catalog-state { border-radius: 2.5rem; }
+  .storefront .product-card-media { border-radius: 2rem; }
+}

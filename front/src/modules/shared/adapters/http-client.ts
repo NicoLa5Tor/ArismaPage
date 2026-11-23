@@ -7,8 +7,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return response.status === 204 ? undefined as T : response.json()
 }
-export function json(method: string, data: unknown, csrf?: string): RequestInit {
-  return { method, headers: { "Content-Type": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) }, body: JSON.stringify(data) }
+/** `human` is the Turnstile token, for the sign-in the backend protects against bots. */
+export function json(method: string, data: unknown, csrf?: string, human?: string): RequestInit {
+  return { method, headers: { "Content-Type": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}), ...(human ? { "X-Turnstile-Token": human } : {}) }, body: JSON.stringify(data) }
 }
 /** Query string without empty values. */
 export const qs = (params: Record<string, string | number | boolean | null | undefined>) =>

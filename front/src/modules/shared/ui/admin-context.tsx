@@ -2,6 +2,8 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 import type { Permission } from "../domain/permission"
+import { PortsProvider } from "./ports"
+export { PortsProvider, usePort } from "./ports"
 
 /** Cross-module navigation: modules open each other's records without importing each other's screens. */
 export type Navigation = {
@@ -24,18 +26,11 @@ export type AdminSession = Navigation & {
   notify: (message: string) => void
 }
 const SessionContext = createContext<AdminSession | null>(null)
-const PortsContext = createContext<Record<string, unknown> | null>(null)
 
 /** Composition root hands in the session and the adapters that implement each module's port. */
 export function AdminProviders({ session, ports, children }: { session: AdminSession; ports: Record<string, unknown>; children: ReactNode }) {
-  return <PortsContext.Provider value={ports}><SessionContext.Provider value={session}>{children}</SessionContext.Provider></PortsContext.Provider>
+  return <PortsProvider ports={ports}><SessionContext.Provider value={session}>{children}</SessionContext.Provider></PortsProvider>
 }
 export function useSession() { const s = useContext(SessionContext); if (!s) throw new Error("AdminProviders missing"); return s }
-/** Each module wraps this in a typed hook (useOrdersPort, useCatalogPort…). */
-export function usePort<T>(key: string): T {
-  const ports = useContext(PortsContext)
-  if (!ports || !(key in ports)) throw new Error(`Port "${key}" not provided`)
-  return ports[key] as T
-}
 /** Whether the signed-in user may do something. Hide or disable controls with it; the backend still checks. */
 export function useCan() { const { user } = useSession(); return (p: Permission) => user.permissions.includes(p) }

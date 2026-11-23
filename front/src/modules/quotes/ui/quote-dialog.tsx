@@ -9,6 +9,7 @@ import { Avatar, ContactActions, Panel, Row, Stat, TabPanel, Tabs, Thumb } from 
 import { useCan, useSession } from "../../shared/ui/admin-context"
 import { QUOTE_STATUS, QuoteBadge } from "./labels"
 import { useQuotesPort } from "./use-quotes"
+import { useStoreProfile } from "../../shared/ui/store-profile"
 
 type Tab = "products" | "request" | "notes"
 const ACTION: Partial<Record<QuoteStatus, string>> = { accepted: "Marcar aceptada", rejected: "Rechazar", expired: "Marcar vencida", pending: "Volver a pendiente" }
@@ -27,6 +28,7 @@ function coverage(l: QuoteDetail["lines"][number]): { text: string; tone: Tone }
 }
 
 export function QuoteDialog({ id, onClose }: { id: string; onClose: () => void }) {
+  const profile = useStoreProfile()
   const api = useQuotesPort()
   const { csrf, notify, openOrder, openCustomer, openProduct, changed } = useSession()
   const quote = useLoad(() => api.get(id), [id])
@@ -60,7 +62,7 @@ export function QuoteDialog({ id, onClose }: { id: string; onClose: () => void }
         <Stat label="Vencimiento" value={q.expiresAt ? date(q.expiresAt) : "—"} hint={q.status === "pending" ? expiry(q.expiresAt) : QUOTE_STATUS[q.status]} />
       </div>
       {q.orderId && <p className="glass-banner"><span className="flex items-center gap-2"><Receipt size={16} aria-hidden="true" />Esta cotización se convirtió en el pedido #{q.orderNumber}.</span><button type="button" className="glass-chip" onClick={() => openOrder(q.orderId!)}>Ver pedido</button></p>}
-      <ContactActions email={q.email} phone={q.phone} message={`Hola ${q.name.split(" ")[0] ?? ""}, te escribimos de Arisma sobre tu cotización ${q.number}.`} />
+      <ContactActions email={q.email} phone={q.phone} message={`Hola ${q.name.split(" ")[0] ?? ""}, te escribimos de ${profile.shortName} sobre tu cotización ${q.number}.`} />
       {error && <p role="alert" className="glass-alert">{error}</p>}
       <Tabs label="Detalle de la cotización" value={tab} onChange={setTab} tabs={[{ id: "products", label: "Productos", badge: q.lines.length }, { id: "request", label: "Solicitud" }, { id: "notes", label: "Notas", badge: q.notes.length || undefined }]} />
 

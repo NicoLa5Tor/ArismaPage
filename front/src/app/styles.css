@@ -1,5 +1,18 @@
 @import "tailwindcss";
 @import "./glass.css";
+@import "./storefront.css";
+@import "./catalog.css";
+@import "./assistant.css";
+@import "./home.css";
+@import "./product.css";
+@import "./cart.css";
+@import "./tienda.css";
+@import "./search.css";
+@import "./legal.css";
+
+/* "desk": pantalla ancha con mouse. Es la misma condición que usan las escenas de GSAP (home/scene.ts), así CSS y JS
+   coinciden en una tablet táctil horizontal, que es ancha pero no tiene hover. */
+@custom-variant desk (@media (width >= 64rem) and (hover: hover));
 
 @layer base {
   html, body { @apply min-h-full; font-family: var(--font-geist-sans), sans-serif; }

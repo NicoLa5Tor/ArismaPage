@@ -46,6 +46,19 @@ public class SessionService {
         return new Issued(token, csrf, principal(user));
     }
 
+    /** A verified external identity may only access an existing active local account. */
+    @Transactional
+    public Issued loginVerifiedEmail(String email) {
+        if (email == null || email.length() > 320) throw new Unauthorized("No se pudo iniciar sesi\u00f3n social");
+        var user = users.findByEmail(email.trim().toLowerCase(java.util.Locale.ROOT))
+            .filter(u -> u.account().active()).orElseThrow(() -> new Unauthorized("No tienes acceso al panel. Contacta a un administrador."));
+        Instant now = clock.instant();
+        users.recordLogin(user.account().id(), now);
+        String token = secrets.token(), csrf = csrfFor(token);
+        sessions.create(secrets.digest(token), user.account().id(), secrets.digest(csrf), now.plus(TTL));
+        return new Issued(token, csrf, principal(user));
+    }
+
     /**
      * Restoring returns the same CSRF token for the whole session, so several tabs of the panel keep working.
      * It is derived from the session token, which the browser keeps in an httpOnly, SameSite=Strict cookie.

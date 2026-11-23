@@ -23,6 +23,13 @@ import { QuotesSection } from "../../modules/quotes/ui/quotes-section"
 import { SummarySection } from "../../modules/reporting/ui/summary-section"
 import { OrderDialog } from "../../modules/sales/ui/order-dialog"
 import { OrdersSection } from "../../modules/sales/ui/orders-section"
+import { ModerationSection } from "../../modules/reviews/ui/moderation-section"
+import { StoreSection } from "../../modules/settings/ui/store-section"
+import { httpStoreProfile } from "../../modules/shared/adapters/http-store-profile"
+import { SOCIAL_LOGIN_ORIGIN } from "../../modules/shared/domain/brand-assets"
+import { EMPTY_PROFILE, type StoreProfile } from "../../modules/shared/domain/store-profile"
+import { StoreProfileProvider } from "../../modules/shared/ui/store-profile"
+import { useHumanCheck } from "../../modules/shared/ui/human-check"
 
 type Open = { kind: "order" | "customer" | "quote" | "product"; id: string }
 
@@ -41,6 +48,7 @@ function Admin() {
   const [email, setEmail] = useState(""), [password, setPassword] = useState("")
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false)
   const [open, setOpen] = useState<Open[]>([])
+  const human = useHumanCheck("panel")
   const [version, setVersion] = useState(0)
 
   useEffect(() => { httpSession.restore().then(s => { if (s) setAuth(s) }).finally(() => setReady(true)) }, [])
@@ -59,14 +67,28 @@ function Admin() {
   }), [auth, version, go, push])
 
   async function login(e: FormEvent) {
-    e.preventDefault(); setBusy(true); setError(""); setNotice("")
-    try { setAuth(await httpSession.login(email, password)); setPassword("") } catch (err) { setError(err instanceof Error ? err.message : "No se pudo iniciar sesión. Revisa tu conexión.") } finally { setBusy(false) }
+    e.preventDefault(); setError(""); setNotice("")
+    if (!human.ready) { setError("Estamos confirmando que eres una persona. Espera un momento y vuelve a intentarlo."); return }
+    setBusy(true)
+    try { setAuth(await httpSession.login(email, password, human.token)); setPassword("") }
+    catch (err) { setError(err instanceof Error ? err.message : "No se pudo iniciar sesión. Revisa tu conexión."); human.reset() }
+    finally { setBusy(false) }
   }
-  async function logout() { try { await httpSession.logout(csrf) } catch { /* the session may already be gone */ } setAuth(null); setOpen([]); setAccount(false) }
+  async function logout() {
+    try {
+      const result = await httpSession.logout(csrf)
+      setAuth(null); setOpen([]); setAccount(false)
+      if (result.redirectUrl) {
+        const destination = new URL(result.redirectUrl)
+        if (destination.origin !== SOCIAL_LOGIN_ORIGIN) throw new Error("No se pudo cerrar la sesi\u00f3n social.")
+        window.location.assign(destination.href)
+      }
+    } catch (err) { setError(err instanceof Error ? err.message : "No se pudo cerrar sesi\u00f3n.") }
+  }
   // After a password change the session is restored so the user record (mustChangePassword) and CSRF token are fresh.
   async function changePassword(current: string, next: string) { await httpSession.changePassword(current, next, csrf); const s = await httpSession.restore(); if (s) setAuth(s); setAccount(false); setNotice("Contraseña actualizada.") }
 
-  if (!ready || !auth || !session) return <AdminLogin ready={ready} busy={busy} email={email} password={password} error={error} onEmailChange={setEmail} onPasswordChange={setPassword} onSubmit={login} />
+  if (!ready || !auth || !session) return <AdminLogin onSocialStart={httpSession.socialStart} ready={ready} busy={busy} email={email} password={password} error={error} onEmailChange={setEmail} onPasswordChange={setPassword} onSubmit={login} humanCheck={human.widget} />
   if (auth.user.mustChangePassword) return <ForcedPasswordChange user={auth.user} onChange={changePassword} onLogout={logout} />
   const close = (o: Open) => setOpen(list => list.filter(x => x !== o))
   return <AdminProviders session={session} ports={httpPorts}>
@@ -82,6 +104,8 @@ function Admin() {
       {section === "coupons" && <CouponsSection />}
       {section === "settings" && <TaxSection />}
       {section === "users" && <UsersSection />}
+      {section === "reviews" && <ModerationSection />}
+      {section === "store" && <StoreSection />}
     </AdminShell>
     <div className="glass-toast-region" aria-live="polite">{notice && <div role="status" className="glass-toast"><span>{notice}</span><button type="button" className="glass-chip" onClick={() => setNotice("")}>Cerrar</button></div>}</div>
     {open.map(o => o.kind === "order" ? <OrderDialog key={`o-${o.id}`} id={o.id} onClose={() => close(o)} />
@@ -92,4 +116,9 @@ function Admin() {
   </AdminProviders>
 }
 
-export default function AdminPage() { return <Suspense fallback={null}><Admin /></Suspense> }
+/** The store profile (name, contact) is loaded once for the whole panel. */
+export default function AdminPage() {
+  const [profile, setProfile] = useState<StoreProfile>(EMPTY_PROFILE)
+  useEffect(() => { void httpStoreProfile.load().then(setProfile) }, [])
+  return <StoreProfileProvider profile={profile}><Suspense fallback={null}><Admin /></Suspense></StoreProfileProvider>
+}

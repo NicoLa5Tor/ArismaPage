@@ -9,7 +9,9 @@ import { httpOrders } from "../../sales/adapters/http-orders"
 import { httpMedia } from "../../shared/adapters/http-media"
 import { httpUsers } from "../../identity/adapters/http-users"
 import { httpFulfillment } from "../../fulfillment/adapters/http-fulfillment"
+import { httpSettings } from "../../settings/adapters/http-settings"
+import { httpModeration } from "../../reviews/adapters/http-moderation"
 
 /** Keys match each module's usePort key (useCatalogPort → "catalog", …). */
-export const httpPorts = { catalog: httpCatalog, orders: httpOrders, customers: httpCustomers, quotes: httpQuotes, inventory: httpInventory, coupons: httpCoupons, reports: httpReports, media: httpMedia, users: httpUsers, fulfillment: httpFulfillment }
+export const httpPorts = { catalog: httpCatalog, orders: httpOrders, customers: httpCustomers, quotes: httpQuotes, inventory: httpInventory, coupons: httpCoupons, reports: httpReports, media: httpMedia, users: httpUsers, fulfillment: httpFulfillment, settings: httpSettings, moderation: httpModeration }
 export { httpSession } from "../../identity/adapters/http-session"

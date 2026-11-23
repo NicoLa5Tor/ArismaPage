@@ -36,6 +36,21 @@ public class PostgresInventory implements InventoryQueries, StockLedger {
                 UUID.randomUUID(),productId,after==null?null:before,after,quantity,reason,actor,orderLineId);
         });
     }
+    public int takeForSale(UUID productId, int quantity, UUID orderLineId, String reason) {
+        if(quantity<=0) throw new IllegalArgumentException("La cantidad debe ser positiva");
+        return Jdbc.with(db,c -> {
+            var product=Jdbc.one(c,"SELECT title,stock_quantity,manage_stock,backorders FROM product WHERE id=? FOR UPDATE",productId).orElseThrow(() -> new NotFound("Producto no encontrado"));
+            if(!Boolean.TRUE.equals(product.get("manageStock"))) return 0;
+            int before=product.get("stockQuantity")==null?0:(Integer)product.get("stockQuantity");
+            boolean backorders=!"no".equals(product.get("backorders"));
+            if(before<quantity && !backorders) throw new co.com.arisma.shared.domain.Conflict(before<=0 ? "«"+product.get("title")+"» se agotó" : "De «"+product.get("title")+"» solo quedan "+before+" unidades");
+            // with backorders the shelf stops at zero; only what was really there is reduced and can be returned
+            int taken=Math.min(before,quantity), after=before-taken;
+            Jdbc.update(c,"UPDATE product SET stock_quantity=?,stock_status=CASE WHEN ?=0 THEN (CASE WHEN backorders='no' THEN 'outofstock' ELSE 'onbackorder' END) ELSE stock_status END,updated_at=now() WHERE id=?",after,after,productId);
+            Jdbc.update(c,"INSERT INTO inventory_adjustment(id,product_id,quantity_before,quantity_after,quantity_delta,reason,kind,order_line_id) VALUES(?,?,?,?,?,?,'sale',?)",UUID.randomUUID(),productId,before,after,-taken,reason,orderLineId);
+            return taken;
+        });
+    }
     public void recordManualChange(UUID productId, Integer before, Integer after, String reason, UUID actor) {
         Jdbc.with(db,c -> Jdbc.update(c,"INSERT INTO inventory_adjustment(id,product_id,quantity_before,quantity_after,quantity_delta,reason,actor_id,kind) VALUES (?,?,?,?,?,?,?,'manual')",
             UUID.randomUUID(),productId,before,after,before==null || after==null?null:after-before,reason,actor));

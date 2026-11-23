@@ -1,4 +1,4 @@
-import type { Board, BulkResult, Courier, DeliveryMethod, DeliveryStatus, MoveDetails, Shipment } from "../domain/fulfillment"
+import type { Board, BulkResult, Courier, DeliveryMethod, DeliveryStatus, MoveDetails, Shipment, TrackingStatus } from "../domain/fulfillment"
 
 export interface FulfillmentPort {
   board(method: DeliveryMethod | "", q: string, staleDays: number): Promise<Board>
@@ -8,4 +8,8 @@ export interface FulfillmentPort {
   reroute(orderId: string, method: DeliveryMethod, details: MoveDetails, csrf: string): Promise<Shipment>
   moveAll(orderIds: string[], status: DeliveryStatus, note: string, csrf: string): Promise<BulkResult>
   closeStale(days: number, csrf: string): Promise<BulkResult>
+  /** Asks the carrier now; starts following the guide when it was not yet (counts against the month). */
+  refreshTracking(orderId: string, csrf: string): Promise<Shipment>
+  trackingStatus(): Promise<TrackingStatus>
+  setTracking(enabled: boolean, csrf: string): Promise<TrackingStatus>
 }

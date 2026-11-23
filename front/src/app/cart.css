@@ -1,0 +1,49 @@
+/* Carrito: botón de los encabezados, cajón lateral y selector de cantidad. */
+@layer components {
+  .cart-button { @apply relative inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold text-white transition-colors duration-300 hover:bg-neutral-700 active:bg-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2; background: var(--ink, #1d1a23); outline-color: var(--brand-pink-strong); }
+  .cart-button-label { @apply hidden sm:inline; }
+  .cart-button-count { @apply grid h-5 min-w-5 place-items-center rounded-full px-1 text-xs font-semibold tabular-nums text-white; background: var(--brand-pink-strong); }
+  .storefront-header .cart-button, .assistant-header .cart-button { @apply shrink-0; }
+
+  .quantity { @apply inline-flex h-12 items-center rounded-2xl border border-stone-200 bg-white; }
+  .quantity button { @apply grid h-full w-12 cursor-pointer place-items-center rounded-2xl text-neutral-700 transition-colors duration-200 hover:bg-stone-100 active:bg-stone-200 focus-visible:outline-2 focus-visible:-outline-offset-2 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent; outline-color: var(--brand-pink-strong); }
+  .quantity output { @apply min-w-8 text-center text-base font-semibold tabular-nums; }
+  .quantity[data-size="sm"] { @apply h-10 rounded-xl; }
+  .quantity[data-size="sm"] button { @apply w-10 rounded-xl; }
+  .quantity[data-size="sm"] output { @apply text-sm; }
+
+  .cart-drawer-root { @apply fixed inset-0 z-50 flex justify-end bg-transparent; }
+  .cart-drawer-backdrop { @apply absolute inset-0 bg-neutral-950/40; }
+  .cart-drawer { @apply relative flex h-full w-full max-w-md flex-col bg-stone-100 shadow-2xl outline-none; color: var(--ink, #1d1a23); }
+  .cart-drawer-head { @apply flex items-center justify-between gap-4 px-6 pt-6 pb-4; }
+  .cart-drawer-head h2 { @apply flex items-baseline gap-2 text-2xl font-semibold tracking-tight; }
+  .cart-drawer-head h2 span { @apply text-sm font-medium text-neutral-500; }
+  .cart-drawer-close { @apply grid size-10 cursor-pointer place-items-center rounded-full transition-colors duration-200 hover:bg-white active:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .cart-drawer-body { @apply flex-1 overflow-y-auto px-6 pb-4; overscroll-behavior: contain; }
+  .cart-drawer-foot { @apply flex flex-col gap-2 border border-x-0 border-b-0 border-stone-200 bg-white px-6 pt-4 pb-6; padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+  .cart-total { @apply flex items-baseline justify-between text-base; }
+  .cart-total strong { @apply text-2xl font-semibold tabular-nums; }
+  .cart-note { @apply text-xs text-neutral-500; }
+  .cart-checkout { @apply mt-2 w-full justify-center; }
+  .cart-view { @apply rounded-full py-2 text-center text-sm font-semibold underline underline-offset-4 hover:text-neutral-600 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+
+  .cart-lines { @apply flex flex-col gap-2; }
+  .cart-line { @apply grid grid-cols-[auto_1fr_auto] items-start gap-4 rounded-3xl bg-white p-3; }
+  .cart-line-photo { @apply grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-stone-200 bg-white text-stone-400; }
+  .cart-line-photo img { @apply size-full object-contain p-1; }
+  .cart-line-body { @apply flex min-w-0 flex-col gap-1; }
+  .cart-line-title { @apply line-clamp-2 rounded text-sm leading-5 font-medium text-inherit no-underline hover:underline focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .cart-line-unit { @apply text-xs text-neutral-500 tabular-nums; }
+  .cart-line-controls { @apply mt-1 flex items-center gap-2; }
+  .cart-line-remove { @apply grid size-10 cursor-pointer place-items-center rounded-full text-neutral-500 transition-colors duration-200 hover:bg-stone-100 hover:text-red-700 active:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
+  .cart-line-total { @apply text-sm font-semibold whitespace-nowrap tabular-nums; }
+
+  .cart-empty { @apply flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center; }
+  .cart-empty-icon { @apply grid size-20 place-items-center rounded-3xl bg-white; color: var(--brand-pink-strong); }
+  .cart-empty h3 { @apply text-xl font-semibold; }
+  .cart-empty p { @apply max-w-xs text-sm text-neutral-600; }
+}
+
+@supports (corner-shape: squircle) {
+  .storefront .cart-line, .storefront .cart-empty-icon { border-radius: 2rem; }
+}

@@ -21,14 +21,17 @@ class OrderServiceTest {
         public Optional<OrderRef> lock(UUID id) { return Optional.ofNullable(orders.get(id)); }
         public void moveTo(UUID id, OrderStatus next) { var o = orders.get(id); orders.put(id, new OrderRef(id, o.number(), next)); }
         public void recordHistory(UUID id, OrderStatus from, OrderStatus to, UUID actor, String note) { history.add(from + ">" + to); }
+        public void keepActive(UUID id, boolean active) { }
         public List<ReducedLine> lockReducedLines(UUID id) { return lines.getOrDefault(id, List.of()).stream().filter(l -> !returned.contains(l.lineId())).toList(); }
         public void markReturned(UUID lineId) { returned.add(lineId); }
+        public void markReduced(UUID lineId, int quantity) {}
         public Map<String, Object> addNote(UUID id, String body, UUID actor) { return Map.of("body", body); }
     }
     static class FakeLedger implements StockLedger {
         final Map<UUID, Integer> returned = new HashMap<>();
         public void returnToStock(UUID productId, int quantity, UUID orderLineId, String reason, UUID actor) { returned.merge(productId, quantity, Integer::sum); }
         public void recordManualChange(UUID productId, Integer before, Integer after, String reason, UUID actor) {}
+        public int takeForSale(UUID productId, int quantity, UUID orderLineId, String reason) { return quantity; }
     }
     /** Collects fired events instead of notifying observers. */
     static class Events implements Event<OrderStatusChanged> {

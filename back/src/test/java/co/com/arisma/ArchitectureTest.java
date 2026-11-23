@@ -38,6 +38,17 @@ class ArchitectureTest {
             for (var i : s.imports()) if (DOMAIN_FORBIDDEN.stream().anyMatch(i::startsWith) || i.contains(".adapter.") || i.contains(".application.")) violations.add(s.file() + " -> " + i);
         assertTrue(violations.isEmpty(), "El dominio solo puede depender del JDK:\n" + String.join("\n", violations));
     }
+    /** A module's domain knows only itself and the shared kernel; modules meet in their application layer. */
+    @Test void domainDependsOnlyOnItselfAndShared() throws IOException {
+        var violations = new ArrayList<String>();
+        for (var s : sources()) if (s.layer().equals("domain"))
+            for (var i : s.imports()) {
+                if (!i.startsWith("co.com.arisma.")) continue;
+                String module = i.substring("co.com.arisma.".length()).split("\\.")[0];
+                if (!module.equals(s.module()) && !module.equals("shared")) violations.add(s.file() + " -> " + i);
+            }
+        assertTrue(violations.isEmpty(), "El dominio de un módulo solo depende de sí mismo y de shared:\n" + String.join("\n", violations));
+    }
     @Test void applicationHasNoInfrastructure() throws IOException {
         var violations = new ArrayList<String>();
         for (var s : sources()) if (s.layer().equals("application"))

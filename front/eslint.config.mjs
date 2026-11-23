@@ -25,6 +25,7 @@ export default defineConfig([
     files: ["src/modules/*/domain/**"],
     rules: { "no-restricted-imports": ["error", { patterns: [
       { group: ["**/application/*", "**/adapters/*", "**/ui/*"], message: "El dominio no depende de otras capas." },
+      { group: ["../../*/domain/*", "!../../shared/domain/*"], message: "El dominio de un módulo solo depende de sí mismo y de shared/domain." },
       { group: ["react", "react-dom", "next", "next/*", "@phosphor-icons/*"], message: "El dominio no depende de frameworks." },
     ] }] },
   },

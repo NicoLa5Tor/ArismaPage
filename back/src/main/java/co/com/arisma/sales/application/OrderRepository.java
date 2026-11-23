@@ -13,7 +13,11 @@ public interface OrderRepository {
     Optional<OrderRef> lock(UUID id);
     void moveTo(UUID id, OrderStatus next);
     void recordHistory(UUID id, OrderStatus from, OrderStatus to, UUID actor, String note);
+    /** A migrated order back on the work list (true) or in the history again (false); other orders are not affected. */
+    void keepActive(UUID id, boolean active);
     List<ReducedLine> lockReducedLines(UUID id);
     void markReturned(UUID lineId);
+    /** Notes how many units a line took off the shelf, so a cancellation knows what to give back. */
+    void markReduced(UUID lineId, int quantity);
     Map<String, Object> addNote(UUID id, String body, UUID actor);
 }

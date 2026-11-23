@@ -48,9 +48,11 @@ class ShipmentTest {
         assertThrows(IllegalArgumentException.class, () -> d.move(FulfillmentStatus.FAILED, new Details(null, null, null, null, null, "x"), PAID, NOW));
         assertThrows(IllegalArgumentException.class, () -> d.reroute(DeliveryMethod.PICKUP, Details.none()));
     }
-    @Test void rerouteToPickupClearsCarrierData() {
-        var s = new Shipment(UUID.randomUUID(), UUID.randomUUID(), DeliveryMethod.CARRIER, FulfillmentStatus.PACKED, "Servientrega", "1", null, null, null, null, null, null, null);
-        var r = s.reroute(DeliveryMethod.PICKUP, Details.none());
-        assertEquals(DeliveryMethod.PICKUP, r.method()); assertNull(r.trackingCode());
+    @Test void theStoreChoosesWhoTakesItButNotWhetherTheCustomerPicksItUp() {
+        var shipped = new Shipment(UUID.randomUUID(), UUID.randomUUID(), DeliveryMethod.CARRIER, FulfillmentStatus.PACKED, "Servientrega", "1", null, null, null, null, null, null, null);
+        assertEquals(DeliveryMethod.COURIER, shipped.reroute(DeliveryMethod.COURIER, Details.none()).method(), "carrier and courier both bring it to the address");
+        assertThrows(IllegalArgumentException.class, () -> shipped.reroute(DeliveryMethod.PICKUP, Details.none()), "the customer paid to have it brought");
+        var pickup = shipment(DeliveryMethod.PICKUP, FulfillmentStatus.PENDING);
+        assertThrows(IllegalArgumentException.class, () -> pickup.reroute(DeliveryMethod.CARRIER, Details.none()), "the customer chose to pick it up");
     }
 }

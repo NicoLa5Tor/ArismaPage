@@ -1,0 +1,6 @@
+# Only the ONNX runtime (native inference), protobuf and esbuild (tsx) need install scripts; sharp is not used.
+allowBuilds:
+  onnxruntime-node: true
+  protobufjs: true
+  esbuild: true
+  sharp: false

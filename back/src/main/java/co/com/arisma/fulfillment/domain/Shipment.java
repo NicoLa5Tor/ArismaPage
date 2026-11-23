@@ -38,9 +38,10 @@ public record Shipment(UUID id, UUID orderId, DeliveryMethod method, Fulfillment
     public Shipment reroute(DeliveryMethod newMethod, Details d) {
         if (!status.open()) throw new IllegalArgumentException("Este envío ya está " + status.label() + "; no se puede cambiar");
         if (newMethod == null) throw new IllegalArgumentException("Elige el método de entrega");
-        if (newMethod == DeliveryMethod.PICKUP && status == FulfillmentStatus.SHIPPED) throw new IllegalArgumentException("Un pedido en camino no puede pasar a recogida en tienda");
-        var r = new Shipment(id, orderId, newMethod, status, carrier, trackingCode, courierUserId, courierName, recipientName, failureReason, packedAt, shippedAt, deliveredAt).withDetails(d);
-        return newMethod == DeliveryMethod.PICKUP ? new Shipment(id, orderId, newMethod, status, null, null, null, null, r.recipientName, r.failureReason, r.packedAt, r.shippedAt, r.deliveredAt) : r;
+        // the customer chose (and paid for) picking it up or having it brought: the store only picks who takes it there
+        if ((newMethod == DeliveryMethod.PICKUP) != (method == DeliveryMethod.PICKUP))
+            throw new IllegalArgumentException(method == DeliveryMethod.PICKUP ? "El cliente eligió recoger en la tienda; no se puede pasar a envío" : "El cliente pidió que se lo enviaran; no se puede pasar a recoger en la tienda");
+        return new Shipment(id, orderId, newMethod, status, carrier, trackingCode, courierUserId, courierName, recipientName, failureReason, packedAt, shippedAt, deliveredAt).withDetails(d);
     }
     /** The order was cancelled: whatever was not delivered stops. */
     public Shipment cancel() { return new Shipment(id, orderId, method, FulfillmentStatus.CANCELLED, carrier, trackingCode, courierUserId, courierName, recipientName, failureReason, packedAt, shippedAt, deliveredAt); }
