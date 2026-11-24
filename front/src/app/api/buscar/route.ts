@@ -35,11 +35,11 @@ export async function GET() {
 
 /** The signed-in shopper behind the request, asked to the backend with the store cookie. Null when signed out. */
 async function shopperId(request: NextRequest): Promise<string | null> {
-  const cookie = request.cookies.get("arisma_cliente")?.value
+  const cookie = request.cookies.get("norpress_cliente")?.value
   if (!cookie || cookie.length > 128) return null
   const base = process.env.ARISMA_ADMIN_API_URL || "http://127.0.0.1:9001"
   try {
-    const response = await fetch(new URL("/api/shop/session", base), { headers: { cookie: `arisma_cliente=${encodeURIComponent(cookie)}` }, cache: "no-store", signal: AbortSignal.timeout(4_000) })
+    const response = await fetch(new URL("/api/shop/session", base), { headers: { cookie: `norpress_cliente=${encodeURIComponent(cookie)}` }, cache: "no-store", signal: AbortSignal.timeout(4_000) })
     if (!response.ok) return null
     const session = await response.json() as { shopper?: { id?: unknown } }
     return typeof session.shopper?.id === "string" ? session.shopper.id : null

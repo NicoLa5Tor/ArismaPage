@@ -10,7 +10,7 @@ const { unserialize } = require('./lib/php-unserialize.cjs')
 const dry = !process.argv.includes('--apply')
 const { DATABASE_URL, WP_DATABASE_URL } = process.env
 if (!DATABASE_URL || !WP_DATABASE_URL) throw new Error('Define DATABASE_URL (Quarkus Postgres) and WP_DATABASE_URL (restored WordPress copy)')
-if (!new URL(DATABASE_URL).pathname.includes('arisma_quarkus')) throw new Error('Target database name must contain arisma_quarkus')
+if (['', '/', '/postgres'].includes(new URL(DATABASE_URL).pathname)) throw new Error('DATABASE_URL must point to the store database, not postgres')
 const wpUrl = new URL(WP_DATABASE_URL)
 if (!['127.0.0.1', 'localhost'].includes(wpUrl.hostname)) throw new Error('The WordPress source must be a local restored copy, never production')
 

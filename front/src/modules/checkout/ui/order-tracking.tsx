@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ArrowSquareOut, Check, Copy } from "@phosphor-icons/react"
-import { TRACKING_STEPS, matchCarrier, stepIndex, trackingStages } from "../../shared/domain/carriers"
+import { TRACKING_STEPS, stepIndex, trackingStages } from "../../shared/domain/carriers"
 import type { OrderView } from "../domain/checkout"
 
 const dates = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Bogota" })
@@ -10,13 +10,13 @@ const FIRST = 4
 
 /**
  * The guide of a carrier shipment: where the carrier says it is (when the store follows it), its movements, and the
- * carrier's own page. Carrier pages do not take the guide in their address, so the number sits next to the link
+ * carrier's own page: straight to the guide when its page takes the number, else the page with the number next to it
  * with a button to copy it.
  */
 export function OrderTracking({ order }: { order: OrderView }) {
   const [copied, setCopied] = useState(false), [all, setAll] = useState(false)
   if (!order.trackingCode) return null
-  const carrier = matchCarrier(order.carrier)
+  const carrierName = order.carrier ?? "la transportadora"
   const tracking = order.tracking
   const stage = tracking?.stage ? trackingStages[tracking.stage] : null
   const current = tracking?.stage ? stepIndex(tracking.stage) : -1
@@ -33,16 +33,17 @@ export function OrderTracking({ order }: { order: OrderView }) {
         </ol>
       </>}
       <div className="tracking-guide">
-        <span><small>Guía {carrier?.label ?? order.carrier ?? ""}</small><strong>{order.trackingCode}</strong></span>
+        <span><small>Guía {order.carrier ?? ""}</small><strong>{order.trackingCode}</strong></span>
         <button type="button" className="tracking-copy" onClick={() => void copy()} aria-label="Copiar número de guía">
           {copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}<span>{copied ? "Copiada" : "Copiar"}</span>
         </button>
       </div>
       <span className="sr-only" role="status">{copied ? "Número de guía copiado" : ""}</span>
-      {carrier && <a className="order-other tracking-link" href={carrier.trackingPage} target="_blank" rel="noopener noreferrer">
-        <ArrowSquareOut size={18} aria-hidden="true" /> Ver en {carrier.label}
+      {order.trackingUrl && <a className="order-other tracking-link" href={order.trackingUrl} target="_blank" rel="noopener noreferrer"
+        onClick={order.opensGuide ? undefined : () => void copy()}>
+        <ArrowSquareOut size={18} aria-hidden="true" /> {order.opensGuide ? `Rastrear en ${carrierName}` : `Ver en ${carrierName}`}
       </a>}
-      {carrier && <p className="cart-note">En la página de {carrier.label} pega tu número de guía.</p>}
+      {order.trackingUrl && !order.opensGuide && <p className="cart-note">Al abrir {carrierName} tu número de guía queda copiado: solo pégalo en su casilla de rastreo.</p>}
       {events.length > 0 && <>
         <ol className="tracking-events" aria-label="Movimientos de la transportadora">
           {(all ? events : events.slice(0, FIRST)).map((e, i) => <li key={`${e.at}-${i}`}>

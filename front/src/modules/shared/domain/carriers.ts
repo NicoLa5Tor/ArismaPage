@@ -1,25 +1,26 @@
 // Carriers and tracking stages. Mirrors back/.../fulfillment/domain/Carrier.java and TrackingStage.java.
 
-export type Carrier = { id: string; label: string; trackingPage: string; names: string[] }
+/** A carrier as the store keeps it (Tienda → Envíos). Mirrors back/.../fulfillment/domain/Carrier.java. */
+export type CarrierInfo = {
+  code: string; name: string; aliases: string[]; trackingKey: number | null
+  /** The carrier's page with {guia} where the number goes; null when its page does not take the number in the address. */
+  linkTemplate: string | null; pageUrl: string | null; numberHint: string; active: boolean; position: number
+}
+export const NUMBER_SLOT = "{guia}"
 
-/** None of these pages takes the guide in its address: the shopper types it there, so we always show it next to the link. */
-export const CARRIER_LIST: Carrier[] = [
-  { id: "inter", label: "Inter Rapidísimo", trackingPage: "https://www.interrapidisimo.com/", names: ["inter", "interrapidisimo", "inter rapidisimo"] },
-  { id: "coordinadora", label: "Coordinadora", trackingPage: "https://coordinadora.com/rastreo/rastreo-de-guia/", names: ["coordinadora"] },
-  { id: "servientrega", label: "Servientrega", trackingPage: "https://www.servientrega.com/wps/portal/rastreo-envio", names: ["servientrega"] },
-  { id: "envia", label: "Envía", trackingPage: "https://envia.co/", names: ["envia", "envia colvanes", "colvanes"] },
-  { id: "tcc", label: "TCC", trackingPage: "https://tcc.com.co/", names: ["tcc"] },
-  { id: "deprisa", label: "Deprisa", trackingPage: "https://www.deprisa.com/", names: ["deprisa"] },
-  { id: "postal", label: "4-72", trackingPage: "https://www.4-72.com.co/", names: ["472", "4 72", "servicios postales nacionales"] },
-]
+/** Where the shopper follows a guide: straight to it when the page takes the number, else the carrier's tracking page. */
+export function linkFor(carrier: Pick<CarrierInfo, "linkTemplate" | "pageUrl">, number: string): string | null {
+  if (carrier.linkTemplate && number.trim()) return carrier.linkTemplate.replace(NUMBER_SLOT, encodeURIComponent(number.trim()))
+  return carrier.pageUrl
+}
 
-const simple = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
-
-/** "Interrapidísimo", "INTER RAPIDISIMO" and "inter" are the same carrier; unknown names give null. */
-export function matchCarrier(typed: string | null | undefined): Carrier | null {
-  if (!typed?.trim()) return null
-  const key = simple(typed)
-  return CARRIER_LIST.find(c => c.names.some(n => simple(n) === key)) ?? null
+/** A guide number as carriers print it: letters, digits and dashes, no spaces, in capitals (same rule as the store). */
+export const normalizeNumber = (raw: string) => raw.replace(/\s+/g, "").toUpperCase()
+export function numberError(raw: string): string | null {
+  const n = normalizeNumber(raw)
+  if (!n) return "Escribe el número de guía"
+  if (n.length < 4 || n.length > 40 || !/^[A-Z0-9-]+$/.test(n)) return "El número de guía lleva de 4 a 40 letras, números o guiones"
+  return null
 }
 
 export type TrackingStage = "waiting" | "received" | "in_transit" | "pickup_ready" | "out_for_delivery" | "attempt_failed" | "delivered" | "exception" | "expired"

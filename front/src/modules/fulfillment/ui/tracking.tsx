@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowSquareOut, ArrowsClockwise, MapTrifold } from "@phosphor-icons/react"
-import { matchCarrier, trackingStages } from "../../shared/domain/carriers"
+import { useState, type FormEvent } from "react"
+import { ArrowSquareOut, ArrowsClockwise, Check, Copy, MapTrifold } from "@phosphor-icons/react"
+import { trackingStages } from "../../shared/domain/carriers"
 import type { Shipment, TrackingStatus } from "../domain/fulfillment"
 import { dateTime } from "../../shared/ui/format"
 import { Async, Card, useLoad } from "../../shared/ui/parts"
@@ -22,7 +22,8 @@ export function TrackingBlock({ orderId, shipment, onChange }: { orderId: string
   const canManage = useCan()("FULFILLMENT_MANAGE")
   const [busy, setBusy] = useState(false), [error, setError] = useState("")
   if (shipment.method !== "carrier" || !shipment.trackingCode) return null
-  const carrier = matchCarrier(shipment.carrier)
+  // the link the shopper gets: straight to the guide when the carrier's page takes the number
+  const carrierName = shipment.carrier ?? "la transportadora"
   const tracking = shipment.tracking
   const stage = tracking?.stage ? trackingStages[tracking.stage] : null
   const live = shipment.status === "shipped" || shipment.status === "failed"
@@ -45,12 +46,34 @@ export function TrackingBlock({ orderId, shipment, onChange }: { orderId: string
     {error && <p role="alert" className="glass-field-error">{error}</p>}
     <div className="flex flex-wrap gap-2">
       {canManage && live && <button type="button" className="glass-chip" disabled={busy} onClick={() => void refresh()}><ArrowsClockwise size={14} aria-hidden="true" className={busy ? "spin" : undefined} /> {busy ? "Consultando…" : "Actualizar"}</button>}
-      {carrier && <a className="glass-chip" href={carrier.trackingPage} target="_blank" rel="noopener noreferrer"><ArrowSquareOut size={14} aria-hidden="true" /> Abrir {carrier.label}</a>}
+      {shipment.trackingUrl && <a className="glass-chip" href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer"><ArrowSquareOut size={14} aria-hidden="true" /> {shipment.opensGuide ? `Ver la guía en ${carrierName}` : `Abrir ${carrierName}`}</a>}
+      {shipment.follow === false && <span className="text-xs text-stone-500">Solo enlace: esta guía no se sigue automáticamente.</span>}
     </div>
   </section>
 }
 
 /** Ajustes, Envíos: the administrator decides whether the store follows guides by itself, and sees the month's use. */
+/** The webhook address to paste in 17TRACK, so each change of a guide arrives at once instead of every few hours. */
+function WebhookAddress({ url, reachable }: { url: string; reachable: boolean }) {
+  const [copied, setCopied] = useState(false), [failed, setFailed] = useState(false)
+  async function copy() {
+    setFailed(false)
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+    catch { setFailed(true) }
+  }
+  return <div className="grid gap-2">
+    <label className="glass-label">Dirección del webhook
+      <span className="flex flex-wrap items-center gap-2">
+        <input className="glass-field min-w-0 flex-1" readOnly value={url} onFocus={e => e.currentTarget.select()} spellCheck={false} />
+        <button type="button" className="glass-chip" onClick={() => void copy()}>{copied ? <><Check aria-hidden /> Copiada</> : <><Copy aria-hidden /> Copiar</>}</button>
+      </span>
+    </label>
+    {failed && <p className="glass-field-error" role="alert">No se pudo copiar. Selecciona la dirección y cópiala a mano.</p>}
+    <p className="text-xs text-stone-500">En api.17track.net, en Configuración → Webhook, pega esta dirección en «URL», elige la versión <strong>V 2.2</strong>, deja marcados los estados y guarda. Así cada cambio de una guía llega al momento, sin esperar la consulta de cada pocas horas.</p>
+    {!reachable && <p className="glass-alert" role="status">Esta dirección es de este computador o no usa https, así que 17TRACK no puede llegar a ella. Funciona cuando la tienda esté publicada con su dominio; mientras tanto, las guías se siguen consultando cada pocas horas.</p>}
+  </div>
+}
+
 export function TrackingSettingsCard() {
   const api = useFulfillmentPort()
   const state = useLoad(() => api.trackingStatus(), [])
@@ -68,11 +91,55 @@ function TrackingSettingsForm({ initial }: { initial: TrackingStatus }) {
     try { setStatus(await api.setTracking(on, csrf)); notify(on ? "Seguimiento automático activado." : "Seguimiento automático apagado.") }
     catch (e) { setError(message(e, "No se pudo guardar")) } finally { setBusy(false) }
   }
+  const [key, setKey] = useState(""), [keyBusy, setKeyBusy] = useState(false), [keyError, setKeyError] = useState(""), [confirmRemove, setConfirmRemove] = useState(false)
+  const canEdit = useCan()("SETTINGS_MANAGE")
+  async function saveKey(e: FormEvent) {
+    e.preventDefault(); setKeyError("")
+    if (!key.trim()) { setKeyError("Pega la Security Key de 17TRACK."); return }
+    setKeyBusy(true)
+    try { setStatus(await api.saveTrackingKey(key.trim(), csrf)); setKey(""); notify("17TRACK aceptó la llave. Quedó guardada.") }
+    catch (err) { setKeyError(message(err, "No se pudo guardar la llave")) } finally { setKeyBusy(false) }
+  }
+  async function removeKey() {
+    setKeyBusy(true); setKeyError("")
+    try { setStatus(await api.removeTrackingKey(csrf)); setConfirmRemove(false); notify("Llave de 17TRACK quitada.") }
+    catch (err) { setKeyError(message(err, "No se pudo quitar la llave")) } finally { setKeyBusy(false) }
+  }
+  const account = status.account
+  const accountShare = account && account.total > 0 ? Math.min(100, Math.round((account.used / account.total) * 100)) : 0
   const share = status.limit === 0 ? 0 : Math.min(100, Math.round((status.used / status.limit) * 100))
   const month = new Intl.DateTimeFormat("es-CO", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${status.month}-15T00:00:00Z`))
   return <div className="mt-4 grid gap-4">
     {error && <p role="alert" className="glass-alert">{error}</p>}
-    {!status.ready && <p className="glass-alert" role="status">El servidor todavía no tiene la llave del servicio de seguimiento. Pide a quien administra la tienda que la configure; mientras tanto, el cliente ve la guía y el enlace a la transportadora.</p>}
+    <section className="tracking-account" aria-labelledby="tracking-account-title">
+      <h3 id="tracking-account-title" className="text-sm font-semibold">Cuenta de 17TRACK</h3>
+      {status.keySource === "panel" && <p className="text-sm">La tienda usa su propia llave de 17TRACK.</p>}
+      {status.keySource === "servidor" && <p className="text-sm">La tienda usa la llave del servidor. Puedes poner la de tu propia cuenta.</p>}
+      {!status.keySource && <p className="text-sm text-stone-400">Sin llave todavía: mientras tanto, el cliente ve la guía y el enlace a la transportadora.</p>}
+      {account ? <div className="grid gap-2">
+        <div className="tracking-account-numbers">
+          <p><strong>{account.remaining.toLocaleString("es-CO")}</strong><span>guías disponibles</span></p>
+          <p><strong>{account.used.toLocaleString("es-CO")}</strong><span>usadas de {account.total.toLocaleString("es-CO")}</span></p>
+          <p><strong>{account.usedToday.toLocaleString("es-CO")}</strong><span>hoy{account.dailyLimit ? ` (límite ${account.dailyLimit.toLocaleString("es-CO")})` : ""}</span></p>
+        </div>
+        <div className="glass-meter" aria-label="Cupo de 17TRACK"><div><span>Cupo</span><i role="progressbar" aria-valuemin={0} aria-valuemax={account.total} aria-valuenow={account.used} aria-label={`${account.used} de ${account.total} guías usadas`}><b style={{ width: `${accountShare}%` }} /></i><span>{accountShare} %</span></div></div>
+        <p className="text-xs text-stone-500">Dato de 17TRACK al abrir esta página. Cada guía nueva gasta una unidad del cupo; seguirla después no gasta más. Para recargar, entra a api.17track.net.</p>
+      </div> : status.accountError ? <p className="glass-alert" role="status">No se pudo consultar la cuenta: {status.accountError}</p> : null}
+      {canEdit && <form className="grid gap-2" onSubmit={saveKey} noValidate>
+        <label className="glass-label">{status.keySource === "panel" ? "Cambiar la Security Key" : "Security Key de tu cuenta de API"}
+          <input className="glass-field" type="password" autoComplete="new-password" name="tracking-security-key" data-1p-ignore data-lpignore="true" spellCheck={false} value={key} onChange={e => setKey(e.target.value)} placeholder="Está en api.17track.net, en la sección de configuración" />
+        </label>
+        {keyError && <p className="glass-field-error" role="alert">{keyError}</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="glass-cta" disabled={keyBusy || !key.trim()}>{keyBusy ? "Comprobando con 17TRACK…" : "Comprobar y guardar"}</button>
+          {status.keySource === "panel" && (confirmRemove
+            ? <span className="flex flex-wrap items-center gap-2 text-sm">¿Quitar la llave?<button type="button" className="glass-chip glass-chip-danger" disabled={keyBusy} onClick={() => void removeKey()}>Sí, quitarla</button><button type="button" className="glass-chip" onClick={() => setConfirmRemove(false)}>No</button></span>
+            : <button type="button" className="glass-chip" disabled={keyBusy} onClick={() => setConfirmRemove(true)}>Quitar llave</button>)}
+        </div>
+        <p className="text-xs text-stone-500">Antes de guardarla, la tienda le pregunta a 17TRACK si es válida. Queda cifrada y no se vuelve a mostrar.</p>
+      </form>}
+      <WebhookAddress url={status.webhookUrl} reachable={status.webhookReachable} />
+    </section>
     <Switch title="Seguir las guías automáticamente" hint="Al despachar con transportadora, la guía se consulta cada pocas horas. Cuando la transportadora confirma la entrega, el pedido se marca entregado solo." checked={status.enabled} disabled={busy || !status.ready} onChange={v => void toggle(v)} />
     <div className="glass-meter" aria-label="Uso del mes">
       <div><span>Plan {status.planLabel}</span><i role="progressbar" aria-valuemin={0} aria-valuemax={status.limit} aria-valuenow={status.used} aria-label={`${status.used} de ${status.limit} envíos`}><b style={{ width: `${share}%` }} /></i><span>{status.used} de {status.limit}</span></div>

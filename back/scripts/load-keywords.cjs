@@ -1,13 +1,14 @@
 // Loads a keyword draft into the database:  DATABASE_URL=… node scripts/load-keywords.cjs [file] [--dry-run]
 // It only ADDS keywords to categories found by slug; what the store already wrote in the admin is never removed.
-// The file is { "categories": { "<slug>": ["palabra", …] } }, by default ../search/stores/arisma-keywords.draft.json.
+// The file is { "categories": { "<slug>": ["palabra", …] } }, given as the first argument (e.g. ../search/stores/<tienda>-keywords.draft.json).
 const { Client } = require('pg')
 const fs = require('node:fs')
 const path = require('node:path')
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
-const file = args.find(a => !a.startsWith('--')) || path.join(__dirname, '..', '..', 'search', 'stores', 'arisma-keywords.draft.json')
+const file = args.find(a => !a.startsWith('--'))
+if (!file) { console.error('Indica el archivo de palabras: node scripts/load-keywords.cjs ../search/stores/<tienda>-keywords.draft.json'); process.exit(1) }
 // the same rules as the admin (catalog/domain/SearchProfile): lower case, 2 to 40 characters, letters, digits and spaces
 const clean = raw => String(raw).trim().replace(/\s+/g, ' ').toLowerCase()
 const valid = word => word.length >= 2 && word.length <= 40 && /^[\p{L}\p{N}]+( [\p{L}\p{N}]+)*$/u.test(word)

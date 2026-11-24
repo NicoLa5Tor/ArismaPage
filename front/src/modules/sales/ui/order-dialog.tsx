@@ -20,6 +20,7 @@ import { useStoreProfile } from "../../shared/ui/store-profile"
 import { InvoiceDialog } from "./invoice-dialog"
 import { departmentName } from "../../shared/domain/colombia"
 import { DeliverPhase, InvoicePhase, PayPhase, PhaseIntro, PhaseSteps, PreparePhase } from "./order-phases"
+import { AfterSalePanel } from "./after-sale"
 
 type Tab = "order" | "history"
 const DOC: Record<string, string> = { cc: "Cédula", NIT: "NIT", extranjeria: "Cédula de extranjería" }
@@ -105,6 +106,7 @@ export function OrderDialog({ id, onClose }: { id: string; onClose: () => void }
         {canManage && <button type="button" className="glass-chip" disabled={busy} onClick={() => void keepActive(!o.keptActive)}>{o.keptActive ? "Enviar al historial" : "Traer a Pedidos"}</button>}
       </div>}
       {error && <p role="alert" className="glass-alert">{error}</p>}
+      {(o.cancellations ?? []).some(r => r.status === "requested") && <p className="glass-banner" role="status">El cliente pidió cancelar este pedido. Respóndele en «Cancelación y reembolsos».</p>}
       <div className="orders-detail-tabs"><Tabs label="Detalle del pedido" value={tab} onChange={setTab} tabs={[{ id: "order", label: "Pedido" }, { id: "history", label: "Historial", badge: history.length }]} /></div>
 
       <TabPanel active={tab === "order"}><div className="grid gap-6">
@@ -131,6 +133,7 @@ export function OrderDialog({ id, onClose }: { id: string; onClose: () => void }
                 <div className="glass-totals mt-2"><div><span>Subtotal sin IVA</span><span>{money(o.subtotal)}</span></div>{o.discountTotal > 0 && <div><span>Descuentos{o.discounts.length > 0 && ` (${o.discounts.map(d => d.code).join(", ")})`}</span><span>−{money(o.discountTotal)}</span></div>}<div><span>Envío</span><span>{money(o.shippingTotal)}</span></div><div><span>IVA</span><span>{money(o.taxTotal)}</span></div><div><span>Total</span><span>{money(o.total)}</span></div></div>
               </details>
             </Panel>
+            <AfterSalePanel order={o} canManage={canManage} onChanged={() => { setPicked(null); order.reload() }} />
             {o.quote && <Panel icon={FileText} title="Origen"><button type="button" className="glass-chip" onClick={() => openQuote(o.quote!.id)}>Viene de la cotización {o.quote.number}</button></Panel>}
           </aside>
         </div>

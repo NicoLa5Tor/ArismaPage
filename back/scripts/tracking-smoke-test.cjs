@@ -1,6 +1,6 @@
 // End-to-end check of automatic shipment tracking against a running local backend, with a fake 17TRACK served
-// here on port 9099. Start the backend with ARISMA_TRACKING_KEY=smoke and ARISMA_TRACKING_URL=http://127.0.0.1:9099
-// (and ARISMA_TRACKING_PLAN unset: free plan). It uses a temporary admin and order, and puts back what it touched.
+// here on port 9099. Start the backend with NORPRESS_TRACKING_KEY=smoke and NORPRESS_TRACKING_URL=http://127.0.0.1:9099
+// (and NORPRESS_TRACKING_PLAN unset: free plan). It uses a temporary admin and order, and puts back what it touched.
 //   DATABASE_URL=postgres://... node scripts/tracking-smoke-test.cjs
 const { Client } = require('pg')
 const crypto = require('node:crypto')

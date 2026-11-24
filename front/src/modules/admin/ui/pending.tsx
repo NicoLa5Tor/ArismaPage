@@ -23,6 +23,10 @@ export function Pending() {
       <strong>{s.data ? money(s.data.sales) : "—"}</strong>
       <p>{s.error ? "No se pudo cargar el resumen" : s.data ? (s.data.orders ? `${plural(s.data.orders, "pedido pagado", "pedidos pagados")} este mes` : "Aún no hay pedidos pagados este mes") : "Cargando…"}</p></section>
     <section className="glass-window glass-widget"><div className="glass-widget-head"><span>Por atender</span><WarningCircle size={20} aria-hidden="true" /></div>
+      {(q?.cancelRequests ?? 0) > 0 && link("Piden cancelar", q?.cancelRequests, () => go("orders", { etapa: "cancel_request" }))}
+      {(q?.refundsToTransfer ?? 0) > 0 && link("Reembolsos por transferir", q?.refundsToTransfer, () => go("orders", { etapa: "refund_pending" }))}
+      {(q?.refundsToCheck ?? 0) > 0 && link("Reembolsos por revisar", q?.refundsToCheck, () => go("orders", { etapa: "refund_pending" }))}
+      {(q?.refundsOwed ?? 0) > 0 && link("Cancelados sin reembolso", q?.refundsOwed, () => go("orders", { etapa: "cancelled" }))}
       {link("Por preparar o enviar", q?.toDispatch, () => go("orders", { vista: "tablero" }))}
       {link("En camino", q?.inTransit, () => go("orders", { etapa: "shipped" }))}
       {link("Requieren atención", q?.issues, () => go("orders", { etapa: "issue" }))}

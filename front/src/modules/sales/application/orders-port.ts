@@ -1,5 +1,5 @@
 import type { DateRange } from "../../shared/domain/page"
-import type { BulkResult, Note, OrderDetail, OrderList, OrderStatus } from "../domain/orders"
+import type { BulkResult, Note, OrderDetail, OrderList, OrderStatus, RefundAccountView, RefundInput } from "../domain/orders"
 import type { Invoice } from "../domain/invoice"
 
 /** stage: comma-separated stages (e.g. "to_prepare,packed"), or "" for all. */
@@ -27,4 +27,15 @@ export interface OrdersPort {
   invoiceFileUrl(id: string): string
   /** A migrated order back on the work list (true) or in the history again (false). */
   keepActive(id: string, active: boolean, csrf: string): Promise<OrderDetail>
+  /** The shopper asked to cancel: yes cancels the order, no needs an answer for them. */
+  approveCancellation(id: string, answer: string, csrf: string): Promise<OrderDetail>
+  rejectCancellation(id: string, answer: string, csrf: string): Promise<OrderDetail>
+  /** The store transferred a refund to the shopper's account. */
+  markTransferred(id: string, reference: string, csrf: string): Promise<OrderDetail>
+  /** After a gateway did not answer: did the refund happen in its dashboard? */
+  confirmChecked(id: string, refunded: boolean, reference: string, csrf: string): Promise<OrderDetail>
+  /** Opens the account to transfer to; the opening is recorded in the order's history. */
+  refundAccount(id: string, csrf: string): Promise<RefundAccountView>
+  /** Money the store gave back; all of it makes the order refunded. */
+  recordRefund(id: string, refund: RefundInput, csrf: string): Promise<OrderDetail>
 }

@@ -1,5 +1,5 @@
 import type { CheckoutPort, OrderAccess } from "../application/checkout-port"
-import type { Instruction, Options, OrderView, OwnedOrder, PaymentOutcome, Placed, Quote } from "../domain/checkout"
+import type { CancelPreview, Instruction, Options, OrderNews, OrderView, OwnedOrder, PaymentOutcome, Placed, Quote } from "../domain/checkout"
 import { storeJson, storeRequest } from "../../shared/adapters/store-client"
 
 const own = (access: Extract<OrderAccess, { kind: "account" }>) => `/shop/orders/${encodeURIComponent(access.number)}`
@@ -18,4 +18,19 @@ export const httpCheckout: CheckoutPort = {
     ? storeRequest<PaymentOutcome>("/public/payments/return", storeJson("POST", { number: access.number, key: access.key, params }))
     : storeRequest<PaymentOutcome>(`${own(access)}/return`, storeJson("POST", { params }, access.csrf)),
   myOrders: () => storeRequest<OwnedOrder[]>("/shop/orders"),
+  liveUrl: (access) => access.kind === "key"
+    ? `/api/arisma-store/public/orders/${encodeURIComponent(access.number)}/events?clave=${encodeURIComponent(access.key)}`
+    : `/api/arisma-store${own(access)}/events`,
+  markSeen: async (access) => { if (access.kind === "account") await storeRequest<void>(`${own(access)}/seen`, { method: "POST", headers: { "X-CSRF-Token": access.csrf } }) },
+  news: () => storeRequest<OrderNews[]>("/shop/orders/news"),
+  cancelPreview: (access) => access.kind === "account"
+    ? storeRequest<CancelPreview>(`${own(access)}/cancel`)
+    : Promise.reject(new Error("Entra a tu cuenta para cancelar el pedido.")),
+  cancelOrder: (access, reason, account) => access.kind === "account"
+    ? storeRequest<OrderView>(`${own(access)}/cancel`, storeJson("POST", { reason, account }, access.csrf))
+    : Promise.reject(new Error("Entra a tu cuenta para cancelar el pedido.")),
+  giveRefundAccount: (access, account) => access.kind === "account"
+    ? storeRequest<OrderView>(`${own(access)}/refund-account`, storeJson("POST", account, access.csrf))
+    : Promise.reject(new Error("Entra a tu cuenta para darnos tu cuenta.")),
+  newsUrl: () => "/api/arisma-store/shop/orders/news/events",
 }

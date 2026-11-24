@@ -17,7 +17,7 @@ import { useOrdersPort } from "./use-orders"
 
 const IN_PROGRESS = WORK_STAGES.join(",")
 const STALE_DAYS = 60
-const STAGE_EMPTY: Record<string, string> = { unpaid: "sin pagar", to_prepare: "por preparar", packed: "empacados", shipped: "en camino", to_invoice: "por facturar", issue: "que requieran atención", delivered: "finalizados", cancelled: "cancelados", [IN_PROGRESS]: "en curso" }
+const STAGE_EMPTY: Record<string, string> = { cancel_request: "que pidan cancelar", refund_pending: "con reembolsos pendientes", unpaid: "sin pagar", to_prepare: "por preparar", packed: "empacados", shipped: "en camino", to_invoice: "por facturar", issue: "que requieran atención", delivered: "finalizados", cancelled: "cancelados", [IN_PROGRESS]: "en curso" }
 type View = "list" | "board"
 type Scope = "work" | "history"
 
@@ -30,7 +30,8 @@ export function OrdersSection({ initialStage = "", initialView = "list" }: { ini
   const api = useOrdersPort(), fulfillment = useFulfillmentPort()
   const { csrf, notify, version, changed, go, openOrder } = useSession()
   const can = useCan()
-  const [scope, setScope] = useState<Scope>("work")
+  // cancelled orders live in the history: a link to them opens it
+  const [scope, setScope] = useState<Scope>(initialStage === "cancelled" || initialStage === "refund_pending" ? "history" : "work")
   const [view, setView] = useState<View>(initialView === "tablero" ? "board" : "list")
   const [stage, setStage] = useState(initialStage)
   const [method, setMethod] = useState<DeliveryMethod | "">("")
@@ -84,6 +85,8 @@ export function OrdersSection({ initialStage = "", initialView = "list" }: { ini
             <option value="">{history ? "Todo el historial" : "Todas las etapas"} ({count(total)})</option>
             {!history && inProgress > 0 && inProgress !== total && <option value={IN_PROGRESS}>Por atender ({count(inProgress)})</option>}
             {stageOptions.map(s => <option key={s} value={s}>{STAGE[s].label} ({count(counts[s] ?? 0)})</option>)}
+            {!history && <option value="cancel_request">Piden cancelar</option>}
+            {history && <option value="refund_pending">Reembolsos pendientes</option>}
           </select>
         </label>}
         {view === "board" && <label className="orders-bar-select"><span className="sr-only">Entrega</span>

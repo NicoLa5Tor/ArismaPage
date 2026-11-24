@@ -11,5 +11,9 @@ export const httpFulfillment: FulfillmentPort = {
   closeStale(days, csrf) { return request("/fulfillment/close-stale", json("POST", { days }, csrf)) },
   refreshTracking(orderId, csrf) { return request(`/orders/${seg(orderId)}/shipment/tracking`, json("POST", {}, csrf)) },
   trackingStatus() { return request("/tracking") },
+  carriers() { return request("/carriers") },
+  saveCarrier(carrier, csrf) { return request(`/carriers/${seg(carrier.code)}`, json("PUT", carrier, csrf)) },
   setTracking(enabled, csrf) { return request("/tracking", json("PUT", { enabled }, csrf)) },
+  saveTrackingKey(key, csrf) { return request("/tracking/key", json("PUT", { key }, csrf)) },
+  removeTrackingKey(csrf) { return request("/tracking/key", { method: "DELETE", headers: { "X-CSRF-Token": csrf } }) },
 }

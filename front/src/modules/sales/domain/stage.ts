@@ -15,9 +15,8 @@ export type Step = { id: string; label: string; action: StepAction; tone?: "dang
 
 const order = (status: OrderStatus): StepAction => ({ kind: "order", status })
 const delivery = (status: DeliveryStatus): StepAction => ({ kind: "delivery", status })
-const cancel: Step = { id: "cancel", label: "Cancelar pedido", action: order("cancelled"), tone: "danger", confirm: "Se cancela el pedido y su envío; las unidades descontadas vuelven al inventario." }
+const cancel: Step = { id: "cancel", label: "Cancelar pedido", action: order("cancelled"), tone: "danger", confirm: "Se cancela el pedido y su envío; las unidades vuelven al inventario y, si estaba pagado, se le devuelve el dinero al cliente por la pasarela o por transferencia." }
 const hold: Step = { id: "hold", label: "Poner en espera", action: order("on_hold") }
-const refund: Step = { id: "refund", label: "Reembolsar", action: order("refunded"), tone: "danger", confirm: "El pedido queda reembolsado; las unidades descontadas vuelven al inventario." }
 
 /**
  * The next thing to do with an order, and the other sensible options.
@@ -36,10 +35,11 @@ export function flow(c: FlowContext): { primary: Step | null; secondary: Step[] 
     case "issue":
       if (c.deliveryStatus === "failed") return { primary: { id: "retry", label: "Reintentar envío", action: delivery("shipped"), form: true }, secondary: [{ id: "returned", label: "Lo devolvieron", action: delivery("returned"), confirm: "El envío queda como devuelto; decide luego si cancelas o reembolsas el pedido." }, cancel] }
       if (c.orderStatus === "on_hold") return { primary: { id: "resume", label: "Reanudar", action: order("processing") }, secondary: [cancel] }
-      return { primary: null, secondary: c.orderStatus === "processing" ? [{ id: "refund", label: "Reembolsar", action: order("refunded"), tone: "danger", confirm: "El pedido queda reembolsado; las unidades descontadas vuelven al inventario." }, cancel] : [cancel] }
+      return { primary: null, secondary: [cancel] }
     // the store makes the invoice in its billing program; here it is attached and sent, and the order is finished
-    case "to_invoice": return { primary: { id: "invoice", label: "Enviar factura", action: { kind: "invoice", status: "send" } }, secondary: [{ id: "no-invoice", label: "No requiere factura", action: { kind: "invoice", status: "not_needed" }, confirm: "El pedido queda finalizado sin enviar factura." }, ...(c.orderStatus === "completed" ? [refund] : [])] }
-    case "delivered": return { primary: null, secondary: c.orderStatus === "completed" ? [refund] : [] }
+    case "to_invoice": return { primary: { id: "invoice", label: "Enviar factura", action: { kind: "invoice", status: "send" } }, secondary: [{ id: "no-invoice", label: "No requiere factura", action: { kind: "invoice", status: "not_needed" }, confirm: "El pedido queda finalizado sin enviar factura." }] }
+    // a refund is recorded in the order's "Cancelación y reembolsos", with its amount and how it was made
+    case "delivered": return { primary: null, secondary: [] }
     default: return { primary: null, secondary: [] }
   }
 }

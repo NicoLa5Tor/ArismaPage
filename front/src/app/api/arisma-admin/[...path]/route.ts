@@ -9,7 +9,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   url.search = request.nextUrl.search
   const headers = proxyHeaders(request)
   try {
-    const response = await fetch(url, { method: request.method, headers, body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer(), cache: "no-store", redirect: "manual" })
+    const response = await fetch(url, { method: request.method, headers, body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer(), cache: "no-store", redirect: "manual", signal: request.signal })
     const result = new Headers({ "Cache-Control": "no-store" })
     const contentType = response.headers.get("content-type")
     if (contentType) result.set("content-type", contentType)

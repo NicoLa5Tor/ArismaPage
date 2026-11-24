@@ -85,7 +85,8 @@ function MyOrders({ verified }: { verified: boolean }) {
           <li key={order.number}>
             <Link href={`/cuenta/pedidos/${encodeURIComponent(order.number)}`} className="my-order squircle">
               <span className="summary-photo squircle">{src ? <img {...optimized(src, { sizes: "56px", width: 56 })} alt="" width={56} height={56} loading="lazy" decoding="async" /> : <ImageSquare size={20} aria-hidden="true" />}</span>
-              <span className="my-order-main"><strong>Pedido #{order.number}{order.test ? " · prueba" : ""}</strong>
+              <span className="my-order-main"><strong>Pedido #{order.number}{order.test ? " · prueba" : ""}{order.unseen && <span className="my-order-new">Nuevo</span>}</strong>
+                {order.unseen && order.latestStep && <span className="my-order-news">{order.latestStep}</span>}
                 <span>{order.firstTitle ?? "Pedido"}{order.lines > 1 ? ` y ${order.lines - 1} más` : ""}</span>
                 <span className="my-order-date">{dates.format(new Date(order.placedAt))}</span></span>
               <span className="my-order-side"><span className="my-order-stage" data-tone={stage.tone}>{stage.label}</span><strong>{money(Number(order.total))}</strong></span>

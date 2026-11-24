@@ -88,10 +88,11 @@ export function CheckoutView({ terms, privacy, whatsapp }: { terms: string; priv
     setBusy(true)
     try {
       const placed = await port.place(lines, { contact, pickup, addressId: pickup ? null : address!.id, note }, cart.coupon)
-      const orderUrl = `/pedido/${encodeURIComponent(placed.number)}?clave=${encodeURIComponent(placed.key)}`
+      // the order is the account's: it is followed and paid signed in, from "Mis pedidos"
+      const orderUrl = `/cuenta/pedidos/${encodeURIComponent(placed.number)}`
       cart.clear()
       // the order exists from here on: if the payment page cannot be opened, the order page lets them try again
-      try { if (goToPayment(await port.startPayment({ kind: "key", number: placed.number, key: placed.key }))) return } catch { /* fall through to the order page */ }
+      try { if (session && goToPayment(await port.startPayment({ kind: "account", number: placed.number, csrf: session.csrf }))) return } catch { /* fall through to the order page */ }
       router.replace(orderUrl)
     } catch (err) { setError(err instanceof Error ? err.message : "No se pudo crear el pedido. Inténtalo de nuevo."); setBusy(false) }
   }

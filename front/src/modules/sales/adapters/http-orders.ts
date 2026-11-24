@@ -17,4 +17,10 @@ export const httpOrders: OrdersPort = {
   invoiceNotNeeded(id, csrf) { return request(`/orders/${seg(id)}/invoice/not-needed`, { method: "POST", headers: { "X-CSRF-Token": csrf } }) },
   invoiceFileUrl(id) { return `/api/arisma-admin/orders/${seg(id)}/invoice/file` },
   keepActive(id, active, csrf) { return request(`/orders/${seg(id)}/active`, json("POST", { active }, csrf)) },
+  approveCancellation(id, answer, csrf) { return request(`/orders/${seg(id)}/cancellation/approve`, json("POST", { answer }, csrf)) },
+  rejectCancellation(id, answer, csrf) { return request(`/orders/${seg(id)}/cancellation/reject`, json("POST", { answer }, csrf)) },
+  recordRefund(id, refund, csrf) { return request(`/orders/${seg(id)}/refunds`, json("POST", refund, csrf)) },
+  markTransferred(id, reference, csrf) { return request(`/orders/${seg(id)}/refund/transferred`, json("POST", { reference }, csrf)) },
+  confirmChecked(id, refunded, reference, csrf) { return request(`/orders/${seg(id)}/refund/checked`, json("POST", { refunded, reference }, csrf)) },
+  refundAccount(id, csrf) { return request(`/orders/${seg(id)}/refund/account`, { method: "POST", headers: { "X-CSRF-Token": csrf } }) },
 }

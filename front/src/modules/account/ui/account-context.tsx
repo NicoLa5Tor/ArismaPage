@@ -33,9 +33,15 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [lost, setLost] = useState(false)
   const checked = useRef(0)
 
+  // only the store saying "not signed in" (401) signs the shopper out; a store restarting or a network blip is asked
+  // again a few times (1, 2 and 4 seconds) before the page decides, so nobody looks signed out for a hiccup
   const refresh = useCallback(async () => {
     checked.current = Date.now()
-    try { setCurrent(await port.restore()) } catch { /* offline: keep what we knew */ } finally { setReady(true) }
+    for (let attempt = 0; ; attempt++) {
+      try { setCurrent(await port.restore()); break }
+      catch { if (attempt >= 3) break; await new Promise((resolve) => window.setTimeout(resolve, 1000 * 2 ** attempt)) }
+    }
+    setReady(true)
   }, [port])
 
   useEffect(() => { void refresh() }, [refresh])

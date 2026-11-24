@@ -36,11 +36,25 @@ export type AccountOrder = { contact: Contact; pickup: boolean; addressId: strin
 export type Instruction = { kind: "redirect" | "form" | "manual"; url: string | null; fields: Record<string, string>; instructions: string | null }
 export type PaymentOutcome = { status: "started" | "pending" | "approved" | "declined" | "voided" | "error"; message: string }
 
+/** One step of the order as the shopper sees it, with its date. tone: good, info or bad. */
+export type JourneyStep = { key: string; title: string; detail: string; at: string; tone: "good" | "info" | "bad" }
+/** An order with a step the shopper has not seen yet: the notices of their account. */
+export type OrderNews = { number: string; step: string; at: string }
+/** What cancelling would do now: how much comes back, how, and whether an account is needed for a transfer. */
+export type CancelPreview = { canCancel: boolean; why: string | null; refund: number; route: "wompi" | "payu" | "transfer" | "none"; routeLabel: string; needsAccount: boolean }
 export type OrderView = {
   number: string; status: string; stage: string; test: boolean; subtotal: number; discount: number; coupon: string | null; shippingTotal: number; taxTotal: number; total: number
   paymentMethod: string | null; paymentMethodTitle: string | null; placedAt: string; paidAt: string | null; expiresAt: string | null
   firstName: string | null; email: string | null; city: string | null; address: string | null; deliveryMethod: string | null; shippingLabel: string | null
   trackingCode: string | null; carrier: string | null
+  /** Every step the order went through, oldest first. */
+  journey?: JourneyStep[]
+  /** The latest request to cancel, whether the shopper can ask now, and what was given back so far. */
+  /** The shopper can cancel now (the order has not left); `refund` is the refund in progress, if any. */
+  canCancel?: boolean; refunded?: number
+  refund?: { amount: number; route: "wompi" | "payu" | "transfer"; status: "processing" | "checking" | "to_transfer"; hasAccount: boolean } | null
+  /** Where to follow the guide: the carrier's page with the number (opensGuide) or its plain page; null when the carrier is not one of the store's. */
+  trackingUrl?: string | null; opensGuide?: boolean | null
   /** Set once the store sent the invoice: it downloads from /factura/<token>. */
   invoiceToken?: string | null
   /** The carrier's movements when the store follows the guide automatically; null otherwise. */
@@ -53,6 +67,8 @@ export type OrderView = {
 export type OwnedOrder = {
   number: string; status: string; test: boolean; total: number; placedAt: string; paymentMethodTitle: string | null; stage: string; lines: number
   firstTitle: string | null; productId: string | null; imageId: string | null; imageUrl: string | null; imageUploaded: boolean | null
+  /** The newest step and whether the shopper has not seen it yet. */
+  latestStep?: string | null; latestAt?: string | null; unseen?: boolean
 }
 export const orderImageSrc = (order: Pick<OwnedOrder, "productId" | "imageId" | "imageUrl" | "imageUploaded">) =>
   quoteImageSrc({ productId: order.productId ?? "", imageId: order.imageId, imageUrl: order.imageUrl, imageUploaded: Boolean(order.imageUploaded) })
@@ -98,7 +114,7 @@ export const stageLabels: Record<string, { label: string; text: string; tone: "w
   shipped: { label: "En camino", text: "Tu pedido ya va hacia ti.", tone: "info" },
   delivered: { label: "Entregado", text: "Gracias por tu compra.", tone: "good" },
   issue: { label: "En revisión", text: "Estamos revisando tu pedido. Te escribimos pronto.", tone: "warn" },
-  cancelled: { label: "Cancelado", text: "Este pedido se canceló. Si pagaste, escríbenos por WhatsApp.", tone: "bad" },
+  cancelled: { label: "Cancelado", text: "Este pedido se canceló. Si ya lo habías pagado, abajo ves cómo va tu reembolso.", tone: "bad" },
 }
 
 const cop = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })

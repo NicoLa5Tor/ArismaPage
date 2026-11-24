@@ -25,13 +25,15 @@ export const SECTIONS: { id: AdminSection; slug: string; label: string; title: s
   { id: "users", slug: "usuarios", label: "Usuarios", title: "Usuarios", subtitle: "Quién entra al panel y qué puede hacer", icon: UsersThree, group: "admin", permission: "USERS_MANAGE" },
   { id: "settings", slug: "impuestos", label: "Impuestos", title: "Impuestos", subtitle: "Tasas de IVA que usan tus productos", icon: Percent, group: "admin", permission: "TAXES_MANAGE" },
 ]
-type Props = { section: AdminSection; onSectionChange: (section: AdminSection) => void; onLogout: () => void; aside: ReactNode; children: ReactNode; user: { name: string; roleLabel: string; permissions: Permission[] }; onAccount: () => void }
+type Props = { section: AdminSection; onSectionChange: (section: AdminSection) => void; onLogout: () => void; aside: ReactNode; children: ReactNode; user: { name: string; roleLabel: string; permissions: Permission[] }; onAccount: () => void
+  /** The panel receives the store's changes as they happen. */
+  live?: boolean }
 
 /**
  * Desktop (≥1100px): spatial three-pane layout; the menu button collapses the sidebar.
  * Phone and tablet: the sidebar is an off-canvas drawer opened from the menu button; content scrolls with the page.
  */
-export function AdminShell({ section, onSectionChange, onLogout, aside, children, user, onAccount }: Props) {
+export function AdminShell({ section, onSectionChange, onLogout, aside, children, user, onAccount, live = false }: Props) {
   const profile = useStoreProfile()
   const [wide, setWide] = useState(false)
   const [side, setSide] = useState(true)
@@ -98,7 +100,7 @@ export function AdminShell({ section, onSectionChange, onLogout, aside, children
         <header className="glass-page-head">
           <button ref={menuButton} type="button" onClick={() => wide ? setSide(!side) : setDrawer(true)} className="glass-round glass-menu-button" aria-label={wide ? (side ? "Ocultar navegación" : "Mostrar navegación") : "Abrir menú"} aria-controls="admin-nav" aria-expanded={wide ? side : drawer}><List size={20} aria-hidden="true" /></button>
           <div className="min-w-0 flex-1"><h1>{current.title}</h1><p>{current.subtitle}</p></div>
-          <div className="glass-tools"><button type="button" onClick={() => setWidgets(!widgets)} className="glass-round" aria-label={widgets ? "Ocultar pendientes" : "Mostrar pendientes"} aria-pressed={widgets}><SquaresFour size={20} aria-hidden="true" /></button><button type="button" className="glass-user-button" onClick={onAccount} aria-label={`Mi cuenta: ${user.name}, ${user.roleLabel}`}><Avatar name={user.name} size={40} /><span className="glass-user-text"><strong>{user.name}</strong><span>{user.roleLabel}</span></span></button></div>
+          <div className="glass-tools">{live && <span className="glass-live" title="Los pedidos se actualizan solos al cambiar">En vivo</span>}<button type="button" onClick={() => setWidgets(!widgets)} className="glass-round" aria-label={widgets ? "Ocultar pendientes" : "Mostrar pendientes"} aria-pressed={widgets}><SquaresFour size={20} aria-hidden="true" /></button><button type="button" className="glass-user-button" onClick={onAccount} aria-label={`Mi cuenta: ${user.name}, ${user.roleLabel}`}><Avatar name={user.name} size={40} /><span className="glass-user-text"><strong>{user.name}</strong><span>{user.roleLabel}</span></span></button></div>
         </header>
         {children}
       </div></main>

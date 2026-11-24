@@ -687,3 +687,37 @@
 .orders-bar-popover{position:absolute;top:calc(100% + 8px);right:0;z-index:20;display:flex;gap:8px;border-radius:20px;padding:12px;background:rgba(24,28,35,.98);box-shadow:0 20px 40px -10px rgba(0,0,0,.6)}
 @media(max-width:640px){.orders-bar-popover{left:0;right:auto;flex-direction:column}.orders-bar-select,.orders-bar-select select{width:100%}}
 .orders-history-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+/* Sending with a guide: carrier buttons, how the shopper follows it and the link preview; the carriers in settings */
+.ship-carriers{display:grid;gap:8px;border:0;padding:0;margin:0}
+.ship-carrier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.ship-carrier{border-radius:14px;padding:10px 12px;font-size:13px;font-weight:600;text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);transition:background-color .2s,border-color .2s}
+.ship-carrier:hover{background:rgba(255,255,255,.12)}
+.ship-carrier:active{background:rgba(255,255,255,.18)}
+.ship-carrier[aria-pressed=true]{background:rgba(74,138,232,.3);border-color:rgba(140,180,240,.8)}
+.ship-carrier:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.ship-number{font-family:var(--font-geist-mono,ui-monospace,monospace);letter-spacing:.04em}
+.ship-follow{display:grid;gap:8px}
+@media(min-width:640px){.ship-follow{grid-template-columns:1fr 1fr}}
+.ship-follow-option{display:flex;align-items:flex-start;gap:10px;cursor:pointer;border-radius:16px;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);transition:background-color .2s,border-color .2s}
+.ship-follow-option:hover{background:rgba(255,255,255,.09)}
+.ship-follow-option:has(:focus-visible){outline:2px solid #fff;outline-offset:2px}
+.ship-follow-option[data-checked]{border-color:rgba(140,180,240,.8);background:rgba(74,138,232,.18)}
+.ship-follow-option[data-disabled]{opacity:.55;cursor:not-allowed}
+.ship-follow-option span{display:grid;gap:4px}
+.ship-follow-option strong{font-size:13px}
+.ship-follow-option small{font-size:12px;color:rgba(255,255,255,.65);text-wrap:pretty}
+.ship-preview{display:grid;gap:6px;border-radius:16px;padding:12px;border:1px dashed rgba(255,255,255,.2)}
+.carrier-rows{display:grid;gap:8px}
+.carrier-rows li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-radius:16px;padding:12px;background:rgba(255,255,255,.05)}
+.carrier-rows li[data-off]{opacity:.6}
+.glass-live{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;color:#c9f2dc;background:rgba(40,150,100,.2)}
+.glass-live::before{content:"";width:8px;height:8px;border-radius:999px;background:#4fc58b;animation:glass-live-pulse 2s var(--ease,ease) infinite}
+@keyframes glass-live-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.glass-live::before{animation:none}}
+@media(max-width:640px){.glass-live{display:none}}
+/* The store's 17TRACK account in Tienda → Envíos: its key and the quota 17TRACK reports */
+.tracking-account{display:grid;gap:12px;border-radius:20px;padding:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.tracking-account-numbers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:8px}
+.tracking-account-numbers p{display:grid;gap:2px;border-radius:14px;padding:10px 12px;background:rgba(255,255,255,.05)}
+.tracking-account-numbers strong{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.tracking-account-numbers span{font-size:12px;color:rgba(255,255,255,.65)}

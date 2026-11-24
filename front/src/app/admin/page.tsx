@@ -1,6 +1,7 @@
 "use client"
 
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { useLiveChanges } from "../../modules/shared/ui/live-changes"
 import { useRouter, useSearchParams } from "next/navigation"
 import { httpPorts, httpSession } from "../../modules/admin/adapters/http-ports"
 import { AdminShell, SECTIONS, type AdminSection } from "../../modules/admin/ui/admin-shell"
@@ -50,6 +51,8 @@ function Admin() {
   const [open, setOpen] = useState<Open[]>([])
   const human = useHumanCheck("panel")
   const [version, setVersion] = useState(0)
+  // live changes from the store (orders paid, sent, tracked): the open screens reload what changed by themselves
+  const live = useLiveChanges(auth ? "/api/arisma-admin/events" : null, () => setVersion(v => v + 1))
 
   useEffect(() => { httpSession.restore().then(s => { if (s) setAuth(s) }).finally(() => setReady(true)) }, [])
   // Confirmation messages leave on their own; errors stay until dismissed.
@@ -92,7 +95,7 @@ function Admin() {
   if (auth.user.mustChangePassword) return <ForcedPasswordChange user={auth.user} onChange={changePassword} onLogout={logout} />
   const close = (o: Open) => setOpen(list => list.filter(x => x !== o))
   return <AdminProviders session={session} ports={httpPorts}>
-    <AdminShell section={section} onSectionChange={id => go(id)} onLogout={logout} aside={<Pending />} user={auth.user} onAccount={() => setAccount(true)}>
+    <AdminShell section={section} onSectionChange={id => go(id)} onLogout={logout} aside={<Pending />} user={auth.user} onAccount={() => setAccount(true)} live={live}>
       {error && <div role="alert" className="glass-alert"><span>{error}</span><button type="button" className="glass-chip" onClick={() => setError("")}>Cerrar</button></div>}
       {section === "summary" && <SummarySection />}
       {section === "orders" && <OrdersSection key={params.get("etapa") ?? ""} initialStage={params.get("etapa") ?? ""} initialView={legacyDispatch ? "tablero" : params.get("vista") ?? "list"} />}

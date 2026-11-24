@@ -11,7 +11,7 @@ const media = JSON.parse(fs.readFileSync(path.join(dir, 'media.json'), 'utf8'))
 const dry = !process.argv.includes('--apply')
 const db = new Client({ connectionString: process.env.DATABASE_URL })
 async function main() {
-  if (!process.env.DATABASE_URL.includes('arisma_quarkus')) throw new Error('Target database name must contain arisma_quarkus')
+  if (/\/postgres(\?|$)/.test(process.env.DATABASE_URL)) throw new Error('DATABASE_URL must point to the store database, not postgres')
   await db.connect(); await db.query('BEGIN')
   const categoryIds = new Map(), errors = [], warnings = []
   let addedProducts = 0, addedCategories = 0

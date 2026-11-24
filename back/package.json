@@ -1,8 +1,8 @@
 {
-  "name": "arisma-migration-tools",
+  "name": "norpress-migration-tools",
   "private": true,
   "version": "0.1.0",
-  "description": "Herramientas locales para administrar e importar datos de Arisma",
+  "description": "Herramientas locales de NorPress para administrar una tienda e importar sus datos de WordPress",
   "packageManager": "pnpm@11.13.1",
   "dependencies": {
     "mysql2": "^3.24.6",

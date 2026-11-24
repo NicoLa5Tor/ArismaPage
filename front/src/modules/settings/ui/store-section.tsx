@@ -12,6 +12,7 @@ import { departments } from "../../shared/domain/colombia"
 import { MailPanel } from "./mail-panel"
 import { PaymentsPanel } from "./payments-panel"
 import { TrackingSettingsCard } from "../../fulfillment/ui/tracking"
+import { CarriersCard } from "../../fulfillment/ui/carriers-card"
 
 type Tab = "profile" | "payments" | "shipping" | "mail" | "talk" | "page"
 const useSettings = () => usePort<SettingsPort>("settings")
@@ -80,7 +81,7 @@ function ProfileCard({ initial }: { initial: Profile }) {
 function ShippingCard({ initial, rules, profile }: { initial: Shipping; rules: CheckoutRules; profile: Profile }) {
   const api = useSettings()
   const { csrf, notify } = useSession()
-  const [form, setForm] = useState({ localRate: String(initial.localRate), nationalRate: String(initial.nationalRate), freeFromLocal: initial.freeFromLocal == null ? "" : String(initial.freeFromLocal), minimumOrder: String(initial.minimumOrder), pickup: initial.pickup, unpaidHours: String(rules.unpaidHours) })
+  const [form, setForm] = useState({ localRate: String(initial.localRate), nationalRate: String(initial.nationalRate), freeFromLocal: initial.freeFromLocal == null ? "" : String(initial.freeFromLocal), minimumOrder: String(initial.minimumOrder), pickup: initial.pickup, unpaidHours: String(rules.unpaidHours), shopperCancels: rules.shopperCancels ?? true })
   const [busy, setBusy] = useState(false), [error, setError] = useState("")
   async function save(e: FormEvent) {
     e.preventDefault(); setError("")
@@ -88,7 +89,7 @@ function ShippingCard({ initial, rules, profile }: { initial: Shipping; rules: C
     const problem = shippingError(value) ?? (Number(form.unpaidHours) >= 1 && Number(form.unpaidHours) <= 720 ? null : "El plazo para pagar va de 1 a 720 horas")
     if (problem) { setError(problem); return }
     setBusy(true)
-    try { await api.saveShipping(value, csrf); await api.saveCheckout({ unpaidHours: Math.round(Number(form.unpaidHours)) }, csrf); notify("Envíos y plazos guardados.") }
+    try { await api.saveShipping(value, csrf); await api.saveCheckout({ unpaidHours: Math.round(Number(form.unpaidHours)), shopperCancels: form.shopperCancels }, csrf); notify("Envíos y plazos guardados.") }
     catch (err) { setError(message(err)) } finally { setBusy(false) }
   }
   const city = profile.localCity || "tu ciudad"
@@ -105,6 +106,9 @@ function ShippingCard({ initial, rules, profile }: { initial: Shipping; rules: C
         {money("minimumOrder", "Compra mínima", "Por debajo de este valor no se puede finalizar la compra.", false)}
       </div>
       <Switch title="Permitir recoger en la tienda" hint={profile.address ? `El cliente no paga envío y recoge en ${profile.address}.` : "El cliente no paga envío. Escribe la dirección en la pestaña Perfil."} checked={form.pickup} onChange={v => setForm({ ...form, pickup: v })} />
+      <Switch title="El cliente puede cancelar antes del envío" hint={form.shopperCancels
+        ? "Mientras el pedido no haya salido, el cliente lo cancela desde su cuenta y se le devuelve el dinero solo: por la pasarela o por transferencia a la cuenta que escriba. Cuando sale, ya no se cancela desde la tienda."
+        : "Solo la tienda cancela pedidos, desde el panel. El cliente ve que debe escribir por WhatsApp."} checked={form.shopperCancels} onChange={v => setForm({ ...form, shopperCancels: v })} />
       <label className="glass-label">Horas para pagar un pedido<input className="glass-field" type="number" min="1" max="720" step="1" required value={form.unpaidHours} onChange={e => setForm({ ...form, unpaidHours: e.target.value })} />
         <span className="text-xs text-stone-500">Pasado ese tiempo el pedido sin pagar se cancela solo y sus unidades vuelven al inventario.</span></label>
       <div><button className="glass-cta" disabled={busy}>{busy ? "Guardando…" : "Guardar"}</button></div>
@@ -163,7 +167,7 @@ export function StoreSection() {
       <TabPanel active={tab === "profile"}><ProfileCard initial={data.store} /></TabPanel>
       <TabPanel active={tab === "payments"}><PaymentsPanel initial={data.payments} /></TabPanel>
       <TabPanel active={tab === "mail"}><MailPanel /></TabPanel>
-      <TabPanel active={tab === "shipping"}><div className="grid gap-4"><ShippingCard initial={data.shipping} rules={data.checkout} profile={data.store} /><TrackingSettingsCard /></div></TabPanel>
+      <TabPanel active={tab === "shipping"}><div className="grid gap-4"><ShippingCard initial={data.shipping} rules={data.checkout} profile={data.store} /><CarriersCard /><TrackingSettingsCard /></div></TabPanel>
       <TabPanel active={tab === "talk"}><TalkCard initial={data.conversations} shortName={data.store.shortName} /></TabPanel>
       <TabPanel active={tab === "page"}><PageCard initial={data.productPage} /></TabPanel>
     </>}</Async>

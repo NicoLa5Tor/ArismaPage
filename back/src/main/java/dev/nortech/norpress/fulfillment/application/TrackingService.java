@@ -1,0 +1,154 @@
+package dev.nortech.norpress.fulfillment.application;
+import dev.nortech.norpress.fulfillment.application.TrackingPorts.*;
+import dev.nortech.norpress.fulfillment.domain.*;
+import dev.nortech.norpress.settings.application.StoreSettingsService;
+import dev.nortech.norpress.settings.domain.TrackingSettings;
+import dev.nortech.norpress.shared.domain.NotFound;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.time.*;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Follows carrier shipments by asking the tracking provider, so the team and the shopper see each step without
+ * opening the carrier's page. The administrator turns it on; the plan caps how many shipments start being followed
+ * each calendar month (Bogotá time). When the carrier confirms the delivery, the shipment and the order close by
+ * themselves. Network calls run outside transactions: every write here is a short statement of its own.
+ */
+@ApplicationScoped
+public class TrackingService {
+    private static final Logger LOG = Logger.getLogger(TrackingService.class.getName());
+    static final ZoneId BOGOTA = ZoneId.of("America/Bogota");
+    static final int BATCH = 40;
+    /** How often a shipment on its way is looked at again. */
+    static final Duration EVERY = Duration.ofHours(4);
+
+    /**
+     * keySource: "panel" (saved by the store), "servidor" or null. account: what 17TRACK reports right now (null when
+     * there is no key or it did not answer, with the reason in accountError).
+     */
+    public record Status(boolean enabled, boolean ready, TrackingPlan plan, TrackingQuota quota, String month, String keySource, ProviderAccount account, String accountError) {}
+
+    @Inject FulfillmentPorts.CarrierCatalog carriers;
+    @Inject ShipmentFeed feed;
+    @Inject TrackingProvider provider;
+    @Inject TrackingAccount account;
+    @Inject TrackingRepository tracking;
+    @Inject StoreSettingsService settings;
+    @Inject FulfillmentService fulfillment;
+    Clock clock = Clock.systemUTC();
+
+    public Status status() {
+        ProviderAccount live = null; String problem = null;
+        if (provider.configured()) {
+            try { live = provider.account(); }
+            catch (RuntimeException e) { problem = e.getMessage() == null ? "17TRACK no respondió" : e.getMessage(); }
+        }
+        return new Status(settings.tracking().enabled(), provider.configured(), account.plan(), quota(), YearMonth.now(clock.withZone(BOGOTA)).toString(), provider.keySource(), live, problem);
+    }
+
+    /** The store's own 17TRACK key: 17TRACK must accept it before it is saved (sealed, never shown again). */
+    public Status saveKey(String key, UUID actor) {
+        String clean = key == null ? "" : key.trim();
+        if (clean.isEmpty() || clean.length() > 128 || !clean.matches("[A-Za-z0-9_-]+")) throw new IllegalArgumentException("Pega la Security Key de 17TRACK tal cual (letras y números, sin espacios)");
+        provider.check(clean);
+        settings.saveTrackingKey(clean, actor);
+        return status();
+    }
+    public Status removeKey(UUID actor) {
+        settings.saveTrackingKey(null, actor);
+        return status();
+    }
+    public Status enable(boolean on, UUID actor) {
+        settings.save(new TrackingSettings(on), actor);
+        return status();
+    }
+    TrackingQuota quota() {
+        var start = YearMonth.now(clock.withZone(BOGOTA)).atDay(1).atStartOfDay(BOGOTA).toInstant();
+        return new TrackingQuota(account.plan(), tracking.registeredSince(start));
+    }
+
+    /** The periodic job: start following new shipments within the month's quota, then look again at those on their way. */
+    public void sync() {
+        if (!settings.tracking().enabled() || !provider.configured()) return;
+        tracking.finishClosed();
+        var quota = quota();
+        if (!quota.exhausted()) start(tracking.pending(Math.min(BATCH, quota.remaining())));
+        List<Followed> due;
+        int rounds = 0;
+        while (rounds++ < 25 && !(due = tracking.due(EVERY, BATCH)).isEmpty()) if (!look(due)) break;
+    }
+
+    /** "Update now" from the order: starts following it if needed (and the quota allows), then asks the carrier. */
+    public void refresh(UUID orderId) {
+        if (!settings.tracking().enabled()) throw new IllegalArgumentException("El seguimiento automático está apagado. Actívalo en Ajustes, pestaña Envíos");
+        if (!provider.configured()) throw new IllegalArgumentException("El servidor aún no tiene la llave del servicio de seguimiento");
+        var pending = tracking.pendingFor(orderId);
+        if (pending.isPresent()) {
+            if (quota().exhausted()) throw new IllegalArgumentException("Ya se usaron los " + account.plan().monthlyShipments + " envíos con seguimiento de este mes. Amplía el plan para seguir más");
+            start(List.of(pending.get()));
+        }
+        var followed = tracking.followed(orderId).orElseThrow(() -> new NotFound("Este envío no tiene una guía en seguimiento"));
+        if (!look(List.of(followed))) throw new IllegalStateException("El servicio de seguimiento no respondió. Inténtalo en unos minutos");
+    }
+
+    void start(List<Pending> pending) {
+        if (pending.isEmpty()) return;
+        var byNumber = new LinkedHashMap<String, Pending>();
+        var keys = new HashMap<String, Integer>();
+        var parcels = new ArrayList<Parcel>();
+        for (var p : pending) {
+            Integer key = carriers.match(p.carrier()).map(Carrier::trackingKey).orElse(null);
+            byNumber.put(p.number(), p); keys.put(p.number(), key); parcels.add(new Parcel(p.number(), key));
+        }
+        List<Registration> results;
+        try { results = provider.register(parcels); } catch (RuntimeException e) { LOG.log(Level.WARNING, "No se pudieron registrar guías en el servicio de seguimiento", e); return; }
+        for (var r : results) {
+            var p = byNumber.get(r.number());
+            if (p == null || r.quotaExhausted()) continue;
+            if (r.accepted()) tracking.registered(p.shipmentId(), p.number(), keys.get(r.number()));
+            else tracking.rejected(p.shipmentId(), p.number(), r.error());
+        }
+    }
+
+    /** False when the provider could not be reached: nothing was marked as looked at. */
+    boolean look(List<Followed> followed) {
+        var byNumber = new LinkedHashMap<String, Followed>();
+        followed.forEach(f -> byNumber.put(f.number(), f));
+        List<Report> reports;
+        try { reports = provider.fetch(followed.stream().map(f -> new Parcel(f.number(), f.carrierKey())).toList()); }
+        catch (RuntimeException e) { LOG.log(Level.WARNING, "No se pudo consultar el servicio de seguimiento", e); return false; }
+        var seen = new HashSet<String>();
+        for (var r : reports) {
+            var f = byNumber.get(r.number());
+            if (f == null) continue;
+            seen.add(r.number());
+            tracking.report(f.shipmentId(), r.stage(), r.events());
+            feed.publish(new ShipmentFeed.Change(f.orderId(), "tracking"));
+            if (r.stage() == TrackingStage.DELIVERED) deliver(f);
+        }
+        // numbers the carrier has not published yet keep their stage and wait for the next round
+        for (var f : followed) if (!seen.contains(f.number())) tracking.report(f.shipmentId(), null, List.of());
+        return true;
+    }
+
+    /**
+     * The provider pushed news about a number (17TRACK webhook): stored like a polled report, and the open screens hear
+     * of it at once. A number the store does not follow is ignored.
+     */
+    public void onPush(Report report) {
+        tracking.followedByNumber(report.number()).ifPresent(f -> {
+            tracking.report(f.shipmentId(), report.stage(), report.events());
+            feed.publish(new ShipmentFeed.Change(f.orderId(), "tracking"));
+            if (report.stage() == TrackingStage.DELIVERED) deliver(f);
+        });
+    }
+
+    private void deliver(Followed f) {
+        String carrier = carriers.match(f.carrier()).map(Carrier::name).orElse(f.carrier());
+        try { fulfillment.moveAlone(f.orderId(), FulfillmentStatus.DELIVERED, "Entrega confirmada por " + carrier, null); }
+        catch (IllegalArgumentException | NotFound e) { LOG.info("El pedido " + f.orderId() + " figura entregado por la transportadora, pero no se pudo cerrar: " + e.getMessage()); }
+    }
+}

@@ -7,7 +7,8 @@ export type Profile = Omit<StoreProfile, "whatsappLabel" | "pickupLine" | "shipp
 export type Conversations = { reviews: boolean; questions: boolean; manualModeration: boolean; buyersOnly: boolean; customerReplies: boolean }
 /** Pesos with tax included. localRate is for the store's city (its profile); freeFromLocal null: local delivery is never free. */
 export type Shipping = { localRate: number; nationalRate: number; freeFromLocal: number | null; pickup: boolean; minimumOrder: number }
-export type CheckoutRules = { unpaidHours: number }
+/** shopperCancels: the shopper may cancel on their own before the order leaves (a paid one is refunded right away). */
+export type CheckoutRules = { unpaidHours: number; shopperCancels: boolean }
 export type GatewayCode = "wompi" | "payu" | "manual"
 export type Environment = "test" | "live"
 /** `secrets` never carries a secret: for each one, "" when it is not stored or dots with its last characters. */
@@ -37,6 +38,7 @@ export const fieldText: Record<string, { label: string; hint: string }> = {
   merchantId: { label: "ID del comercio (merchantId)", hint: "En Configuración técnica, en tu panel de PayU. En pruebas, PayU publica el 508029." },
   accountId: { label: "ID de la cuenta (accountId)", hint: "El de la cuenta de Colombia. En pruebas, PayU publica el 512321." },
   apiKey: { label: "API Key", hint: "Firma los cobros y comprueba las confirmaciones de PayU." },
+  apiLogin: { label: "API Login (opcional)", hint: "Está junto a la API Key, en Configuración técnica de PayU. Con ella la tienda devuelve el dinero de las cancelaciones por PayU; sin ella, esos reembolsos se hacen por transferencia." },
   instructions: { label: "Instrucciones de pago", hint: "Lo que lee el cliente al terminar su pedido: banco, cuenta, titular y a dónde enviar el comprobante." },
 }
 
