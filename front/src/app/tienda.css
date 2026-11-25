@@ -125,6 +125,7 @@
   .choice strong { @apply text-sm font-semibold; }
   .choice small { @apply text-xs text-neutral-600; }
   .checkout-terms { @apply flex cursor-pointer items-start gap-2 text-sm text-neutral-700; }
+  .checkout-cancel-rule { @apply text-sm text-neutral-600; }
   .checkout-terms input { @apply mt-1 size-4 shrink-0; accent-color: var(--brand-pink-strong); }
 
   .order-head { @apply flex flex-col gap-2; }
@@ -430,4 +431,24 @@
   .refund-account-note { @apply flex items-start gap-2 text-sm text-stone-600; text-wrap: pretty; }
   .refund-account-doc { @apply grid gap-4 sm:grid-cols-2; }
   .store-field select { @apply w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-base font-normal; }
+}
+
+/* Foot of every store page: who sells, how to reach them and the legal pages (Ley 1480 art. 50). */
+@layer components {
+  .store-footer { @apply bg-neutral-900 px-4 py-8 text-sm text-neutral-400 sm:px-8; font-family: var(--font-poppins), sans-serif; }
+  .store-footer-inner { @apply mx-auto flex max-w-6xl flex-col gap-2; }
+  .store-footer-who { @apply font-semibold text-neutral-200; }
+  .store-footer-contact, .store-footer-links { @apply flex flex-wrap gap-x-4 gap-y-0; }
+  .store-footer-links { @apply pt-2; }
+  .store-footer a { @apply inline-flex min-h-11 items-center rounded text-neutral-300 underline-offset-4 hover:text-white hover:underline active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white; }
+  .store-footer-contact li { @apply inline-flex min-h-11 items-center; }
+}
+
+/* Account: what signing in accepts, and erasing the account. */
+@layer components {
+  .account-legal { @apply text-xs text-neutral-600; }
+  .account-legal a, .account-form .checkout-terms a { @apply rounded font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2; color: var(--brand-pink-strong); outline-color: var(--brand-pink-strong); }
+  .account-erase { @apply flex flex-col gap-4; }
+  .account-erase-actions { @apply flex flex-wrap gap-2; }
+  .storefront .account-danger { color: #b42318; }
 }

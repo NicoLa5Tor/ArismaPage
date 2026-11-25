@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { AnimatePresence } from "motion/react"
@@ -173,10 +172,6 @@ export function CatalogView({ categories, page, filters, catalogTotal, failed }:
         <a className="button-primary" href={whatsappUrl("Hola, necesito ayuda para elegir un producto")} target="_blank" rel="noopener noreferrer"><WhatsappLogo size={20} weight="fill" aria-hidden="true" /> Hablar con un asesor</a>
       </section>
 
-      <footer className="storefront-footer">
-        <p>© {new Date().getFullYear()} {profile.legalName || profile.name}{profile.pickupLine ? `. ${profile.pickupLine}.` : "."}</p>
-        <Link href="/admin">Administración</Link>
-      </footer>
     </main>
   )
 }

@@ -67,7 +67,8 @@ export function metaDescription(detail: ProductDetail, storeName: string): strin
 }
 
 /** schema.org Product for the page: price and availability only when the store shows them, rating only when there are reviews. */
-export function productJsonLd(detail: ProductDetail, site: string, storeName: string): Record<string, unknown> {
+/** returnsUrl: the returns policy the store published, if any. */
+export function productJsonLd(detail: ProductDetail, site: string, storeName: string, returnsUrl?: string): Record<string, unknown> {
   const { product } = detail
   const url = `${site}/producto/${encodeURIComponent(product.slug)}`
   const images = detail.images.map((image) => galleryImageSrc(product.id, image)).filter((src): src is string => Boolean(src)).map((src) => (src.startsWith("/") ? `${site}${src}` : src))
@@ -78,7 +79,8 @@ export function productJsonLd(detail: ProductDetail, site: string, storeName: st
   if (detail.sku) data.sku = detail.sku
   if (price !== null) {
     data.offers = { "@type": "Offer", url, priceCurrency: "COP", price, itemCondition: "https://schema.org/NewCondition",
-      availability: `https://schema.org/${detail.availability.status === "OUT_OF_STOCK" ? "OutOfStock" : detail.availability.status === "BACKORDER" ? "BackOrder" : "InStock"}` }
+      availability: `https://schema.org/${detail.availability.status === "OUT_OF_STOCK" ? "OutOfStock" : detail.availability.status === "BACKORDER" ? "BackOrder" : "InStock"}`,
+      ...(returnsUrl ? { hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "CO", merchantReturnLink: returnsUrl, returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: 5, returnMethod: "https://schema.org/ReturnByMail", returnFees: "https://schema.org/ReturnShippingFees" } } : {}) }
   }
   if (detail.rating.count > 0) data.aggregateRating = { "@type": "AggregateRating", ratingValue: Number(detail.rating.average.toFixed(1)), reviewCount: detail.rating.count }
   return data

@@ -30,7 +30,8 @@ const paymentText: Record<string, { hint: string; icon: typeof CreditCard }> = {
  * One page: where it goes (a saved address or pickup), who buys, how it is paid and the order as the store prices it.
  * Buying needs an account: the address book and the buyer's data come from it and stay there for next time.
  */
-export function CheckoutView({ terms, privacy, whatsapp }: { terms: string; privacy: string; whatsapp?: string }) {
+/** legal: the policies the store publishes (only those with an address); cancels: shoppers cancel on their own before it leaves. */
+export function CheckoutView({ legal, cancels, whatsapp }: { legal: { label: string; href: string }[]; cancels: boolean; whatsapp?: string }) {
   const port = usePort<CheckoutPort>("checkout")
   const book = useAddressBookPort()
   const profile = useStoreProfile()
@@ -84,10 +85,10 @@ export function CheckoutView({ terms, privacy, whatsapp }: { terms: string; priv
     if (first) { document.getElementById(`checkout-${first}`)?.focus(); return }
     if (!payment) { setError("La tienda no está recibiendo pagos en este momento. Escríbenos por WhatsApp."); return }
     if (couponProblem) { setError(`Cupón: ${couponProblem}. Quítalo o escribe otro.`); return }
-    if (!accepts) { setError("Acepta los términos y la política de datos para continuar."); return }
+    if (!accepts) { setError("Acepta los términos y las políticas de la tienda para continuar."); return }
     setBusy(true)
     try {
-      const placed = await port.place(lines, { contact, pickup, addressId: pickup ? null : address!.id, note }, cart.coupon)
+      const placed = await port.place(lines, { contact, pickup, addressId: pickup ? null : address!.id, note }, cart.coupon, accepts)
       // the order is the account's: it is followed and paid signed in, from "Mis pedidos"
       const orderUrl = `/cuenta/pedidos/${encodeURIComponent(placed.number)}`
       cart.clear()
@@ -193,7 +194,8 @@ export function CheckoutView({ terms, privacy, whatsapp }: { terms: string; priv
             </>
           )}
           {cartProblem && <p className="store-alert" role="alert">{cartProblem}. <Link href="/carrito">Revisa tu carrito</Link>.</p>}
-          <label className="checkout-terms"><input type="checkbox" checked={accepts} onChange={(e) => setAccepts(e.target.checked)} /> <span>Acepto los <a href={terms} target="_blank" rel="noopener noreferrer">términos y condiciones</a> y la <a href={privacy} target="_blank" rel="noopener noreferrer">política de tratamiento de datos</a>.</span></label>
+          <p className="checkout-cancel-rule">{cancels ? "Puedes cancelar tu pedido desde tu cuenta mientras no haya salido; te devolvemos el dinero. Cuando ya salió, no se cancela desde la tienda." : "Para cancelar tu pedido antes de que salga, escríbenos. Cuando ya salió, no se cancela desde la tienda."}</p>
+          <label className="checkout-terms"><input type="checkbox" checked={accepts} onChange={(e) => setAccepts(e.target.checked)} /> <span>Acepto {legal.length === 0 ? "las condiciones de compra de la tienda" : legal.map((l, i) => <span key={l.href}>{i > 0 && (i === legal.length - 1 ? " y " : ", ")}{l.label.startsWith("Términos") ? "los " : "la "}<a href={l.href} target="_blank" rel="noopener noreferrer">{l.label.charAt(0).toLowerCase() + l.label.slice(1)}</a></span>)} y autorizo el tratamiento de mis datos para este pedido.</span></label>
           {error && <p className="store-alert" role="alert">{error}</p>}
           <button type="submit" className="button-primary" disabled={busy || !priced || Boolean(cartProblem) || !payment}>{busy ? <><CircleNotch className="spin" size={18} aria-hidden="true" /> Creando tu pedido…</> : <><Lock size={18} weight="fill" aria-hidden="true" /> {payment?.code === "manual" ? "Hacer el pedido" : payment?.test ? "Ir a pagar (prueba)" : "Ir a pagar"}</>}</button>
           <p className="cart-note">{payment?.code === "manual" ? "Te mostramos los datos para pagar al terminar." : `Tus datos de pago los recibe la pasarela, no ${profile.shortName}.`}</p>

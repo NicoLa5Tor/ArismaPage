@@ -22,15 +22,23 @@ public class ShopSessionResource {
     @Inject SocialLogin social;
     @ConfigProperty(name = "norpress.cookie.secure", defaultValue = "true") boolean secure;
     public record Login(String email, String password) {}
-    public record Signup(String name, String email, String password) {}
+    /** acceptsPrivacy: the person authorized the treatment of their data (Ley 1581) and accepted the terms; required. */
+    public record Signup(String name, String email, String password, boolean acceptsPrivacy) {}
+    @Inject dev.nortech.norpress.settings.application.LegalService legal;
+    /** What creating an account accepts: the terms and the data policy, in their latest published version. */
+    static final java.util.List<String> ACCEPTED = java.util.List.of("terms", "privacy");
     public record SocialCallback(String state, String code) {}
 
     @Guarded(bucket = "shop-login", limit = 20, windowSeconds = 600, human = true)
     @POST public Response login(Login in) { return signedIn(auth.login(in == null ? null : in.email(), in == null ? null : in.password())); }
     @Guarded(bucket = "shop-register", limit = 10, windowSeconds = 3600, human = true)
-    @POST @Path("/register") public Response register(Signup in) {
+    @POST @Path("/register") @jakarta.transaction.Transactional
+    public Response register(Signup in, @HeaderParam("X-Forwarded-For") String forwarded, @HeaderParam("User-Agent") String agent, @Context io.vertx.core.http.HttpServerRequest connection) {
         if (in == null) throw new IllegalArgumentException("Datos de la cuenta requeridos");
-        return signedIn(auth.register(in.name(), in.email(), in.password()));
+        if (!in.acceptsPrivacy()) throw new IllegalArgumentException("Para crear tu cuenta, autoriza el tratamiento de tus datos y acepta los términos");
+        var issued = auth.register(in.name(), in.email(), in.password());
+        legal.accept(ACCEPTED, "signup", null, issued.shopper().accountId(), dev.nortech.norpress.shared.adapter.ClientAddress.of(connection, forwarded), agent);
+        return signedIn(issued);
     }
     @GET public Response current(@CookieParam(COOKIE) String token) {
         var issued = auth.restore(token);
@@ -62,10 +70,14 @@ public class ShopSessionResource {
         return Response.ok(Map.of("url", start.url())).header("Cache-Control", "no-store").cookie(cookie(STATE_COOKIE, start.state(), 300)).build();
     }
     @Guarded(bucket = "shop-social", limit = 30, windowSeconds = 600)
-    @POST @Path("/social/callback") public Response socialCallback(SocialCallback in, @CookieParam(STATE_COOKIE) String stateCookie) {
+    /** Signing in with Google or Facebook accepts the terms and the data policy (the button says so); each version once. */
+    @POST @Path("/social/callback") @jakarta.transaction.Transactional
+    public Response socialCallback(SocialCallback in, @CookieParam(STATE_COOKIE) String stateCookie, @HeaderParam("X-Forwarded-For") String forwarded,
+                                   @HeaderParam("User-Agent") String agent, @Context io.vertx.core.http.HttpServerRequest connection) {
         if (in == null) throw new Unauthorized("Inicio de sesión inválido");
         var person = social.verified(in.state(), stateCookie, in.code(), SocialLogin.SHOP);
         var issued = auth.loginVerified(person.email(), person.name());
+        legal.acceptMissing(ACCEPTED, "social", issued.shopper().accountId(), dev.nortech.norpress.shared.adapter.ClientAddress.of(connection, forwarded), agent);
         return Response.ok(body(issued)).header("Cache-Control", "no-store").cookie(cookie(COOKIE, issued.token(), (int) ShopperAuthService.TTL.toSeconds()), cookie(STATE_COOKIE, "", 0)).build();
     }
 

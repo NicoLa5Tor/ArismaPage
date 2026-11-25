@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { ArrowRight, Cake, CaretRight, CreditCard, Hash, MapPin, Package, ShieldCheck } from "@phosphor-icons/react/ssr"
 import { discountPercent } from "../../domain/catalog"
-import { manifesto, purchaseFacts } from "../../domain/home"
+import { manifesto, purchaseFactsFor } from "../../domain/home"
+import type { StoreProfile } from "../../../shared/domain/store-profile"
 import { type ProductDetail, ageLabel } from "../../domain/product"
 import { ProductCard } from "../catalog/product-card"
 import { SiteFooter } from "../home/final-cta"
@@ -18,7 +19,8 @@ const factIcons = { shipping: Package, payment: CreditCard, warranty: ShieldChec
  * is both shown and has something to say. `children` is where the reviews and questions go.
  */
 /** shipsFrom is the store's city, from its profile; empty, the line only says it ships to all of Colombia. */
-export function ProductView({ detail, shipsFrom = "", children }: { detail: ProductDetail; shipsFrom?: string; children?: React.ReactNode }) {
+export function ProductView({ detail, profile, children }: { detail: ProductDetail; profile: StoreProfile; children?: React.ReactNode }) {
+  const shipsFrom = profile.localCity
   const { product, sections } = detail
   const age = ageLabel(detail.ageMin, detail.ageMax)
   const discount = discountPercent(product)
@@ -94,7 +96,7 @@ export function ProductView({ detail, shipsFrom = "", children }: { detail: Prod
           <Reveal as="section" className="product-block">
             <h2>Cómo lo recibes</h2>
             <ul className="product-facts">
-              {purchaseFacts.map((fact) => {
+              {purchaseFactsFor(profile).map((fact) => {
                 const Icon = factIcons[fact.id]
                 return <li key={fact.id} className="squircle" data-tone={fact.tone}><span className="product-fact-icon squircle"><Icon size={24} weight="fill" aria-hidden="true" /></span><h3>{fact.title}</h3><p>{fact.text}</p></li>
               })}

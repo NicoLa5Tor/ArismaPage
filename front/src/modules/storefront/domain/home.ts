@@ -1,5 +1,8 @@
 // Contenido de la home después del recorrido. Todo sale de arisma.com.co o del catálogo: nada de cifras inventadas.
+// Lo que depende de cómo vende la tienda hoy (envíos, pagos, dirección, horario) sale de su perfil, así nunca promete
+// algo que el checkout no ofrece.
 import type { BrandTone } from "./catalog"
+import { minimumSentence, paymentMethods, paymentSentence, shippingBadge, shippingSentence, type StoreProfile } from "../../shared/domain/store-profile"
 
 export const store = {
   legalName: "ARISMA S.A.",
@@ -37,8 +40,10 @@ export const benefits: Benefit[] = [
   { id: "age", tone: "pink", title: "El juguete para la edad exacta", text: "Filtra por edad o cuéntale al asistente para quién es. Ves solo lo que le sirve hoy." },
   { id: "classroom", tone: "blue", title: "Un salón completo en una sola cotización", text: "Asesores y pedagogos arman contigo la dotación por área y por grado." },
   { id: "quote", tone: "orange", title: "Precio y entrega claros antes de pagar", text: "Una persona te responde por WhatsApp con valor, disponibilidad y tiempos." },
-  { id: "shipping", tone: "green", title: "Llega a tu puerta en toda Colombia", text: "Despachamos a todo el país. En Bogotá el envío es gratis en compras de más de $150.000." },
 ]
+/** The four benefits; the delivery one says what the store really charges. */
+export const benefitsFor = (profile: StoreProfile): Benefit[] => [...benefits,
+  { id: "shipping", tone: "green", title: "Llega a tu puerta en toda Colombia", text: shippingSentence(profile) }]
 
 export type Step = { id: "choose" | "quote" | "receive"; title: string; text: string; tone: BrandTone }
 
@@ -53,8 +58,6 @@ export const stepArt = {
   photos: ["/catalog/categorias/didacticos.jpg", "/catalog/categorias/ciencias-y-tecnologia.jpg", "/catalog/categorias/juguetes-geniales.jpg"],
   fallbackProduct: "Ajedrez de madera",
   reply: "¡Hola! Ya te confirmo precio, disponibilidad y tiempo de entrega.",
-  payments: ["Tarjeta de crédito", "PSE", "Baloto", "Bancos"],
-  shipping: "Envío gratis en Bogotá en compras de más de $150.000",
   toy: "/home/toys/dinosaurio.webp",
   marker: "/home/toys/brazo-robotico.webp",
 } as const
@@ -81,23 +84,32 @@ export const askUrl = (question: string) => `/buscar?q=${encodeURIComponent(ques
 
 export type Faq = { question: string; answer: string }
 
-export const faqs: Faq[] = [
-  { question: "¿A dónde despachan?", answer: "A todo el territorio nacional de Colombia. También atendemos distribuidores en Suramérica, Centroamérica y el Caribe." },
-  { question: "¿Cuánto cuesta el envío?", answer: "En Bogotá el envío es gratis en compras de más de $150.000. Para el resto del país te confirmamos el valor por WhatsApp antes de que pagues. La compra mínima por la página es de $50.000." },
-  { question: "¿Cómo puedo pagar?", answer: "Con tarjeta de crédito, PSE, Baloto o pago referenciado en bancos. El pago contra entrega aplica en compras desde $200.000." },
-  { question: "¿Qué garantía tienen los productos?", answer: "Seis meses por defectos de fabricación. La garantía no cubre daños por uso inadecuado." },
-  { question: "¿Por qué algunos productos dicen precio a cotizar?", answer: "Porque su valor depende de la cantidad o de la dotación que necesites. Toca Cotizar y te enviamos por WhatsApp el precio y la disponibilidad." },
-  { question: "¿Atienden colegios y jardines?", answer: "Sí. Atendemos instituciones y familias. Nuestro equipo de asesores comerciales y pedagogos te ayuda a armar la dotación por edad y por área." },
-  { question: "¿Puedo ir a la tienda?", answer: `Sí. Estamos en la ${store.address}, en Bogotá. ${store.hours[0]} y ${store.hours[1].toLowerCase()}.` },
-  { question: "¿Cómo sé qué le sirve a mi hijo según su edad?", answer: "Entra a Pregúntale a Arisma, escribe la edad y lo que quieres trabajar y verás productos reales del catálogo. Si prefieres hablar con alguien, un asesor te orienta por WhatsApp." },
-]
+export function faqsFor(profile: StoreProfile): Faq[] {
+  const visit = profile.pickupLine ? `Sí. Estamos en ${profile.pickupLine}.${profile.hours.length ? " " + profile.hours.join(". ") + "." : ""}` : ""
+  return [
+    { question: "¿A dónde despachan?", answer: "A todo el territorio nacional de Colombia. También atendemos distribuidores en Suramérica, Centroamérica y el Caribe." },
+    { question: "¿Cuánto cuesta el envío?", answer: `${shippingSentence(profile)} Lo ves antes de pagar. ${minimumSentence(profile)}`.trim() },
+    { question: "¿Cómo puedo pagar?", answer: paymentSentence(profile) },
+    { question: "¿Qué garantía tienen los productos?", answer: "Seis meses por defectos de fabricación. La garantía no cubre daños por uso inadecuado." },
+    { question: "¿Puedo cancelar mi pedido?", answer: profile.shopperCancels ? "Sí, mientras no haya salido de la tienda: lo cancelas desde tu cuenta y te devolvemos el dinero. Cuando ya salió, escríbenos y te ayudamos." : "Escríbenos por WhatsApp mientras no haya salido de la tienda y lo cancelamos. Cuando ya salió, te ayudamos con la devolución o la garantía." },
+    { question: "¿Por qué algunos productos dicen precio a cotizar?", answer: "Porque su valor depende de la cantidad o de la dotación que necesites. Toca Cotizar y te enviamos por WhatsApp el precio y la disponibilidad." },
+    { question: "¿Atienden colegios y jardines?", answer: "Sí. Atendemos instituciones y familias. Nuestro equipo de asesores comerciales y pedagogos te ayuda a armar la dotación por edad y por área." },
+    ...(visit ? [{ question: "¿Puedo ir a la tienda?", answer: visit }] : []),
+    { question: "¿Cómo sé qué le sirve a mi hijo según su edad?", answer: "Entra a Pregúntale a Arisma, escribe la edad y lo que quieres trabajar y verás productos reales del catálogo. Si prefieres hablar con alguien, un asesor te orienta por WhatsApp." },
+  ]
+}
 
 /** What a shopper wants to know before paying, on every product page. Same facts as the FAQ, taken from arisma.com.co. */
 export type PurchaseFact = { id: "shipping" | "payment" | "warranty" | "store"; tone: BrandTone; title: string; text: string }
 
-export const purchaseFacts: PurchaseFact[] = [
-  { id: "shipping", tone: "green", title: "Envío a toda Colombia", text: "Despachamos a todo el país. En Bogotá el envío es gratis en compras de más de $150.000." },
-  { id: "payment", tone: "blue", title: "Paga como prefieras", text: "Tarjeta de crédito, PSE, Baloto o pago referenciado en bancos." },
-  { id: "warranty", tone: "orange", title: `Garantía de ${store.warrantyMonths} meses`, text: "Cubre defectos de fabricación. No cubre daños por uso inadecuado." },
-  { id: "store", tone: "pink", title: "También en la tienda", text: `${store.address}, ${store.city}. ${store.hours[0]}` },
-]
+export function purchaseFactsFor(profile: StoreProfile): PurchaseFact[] {
+  return [
+    { id: "shipping", tone: "green", title: "Envío a toda Colombia", text: shippingSentence(profile) },
+    { id: "payment", tone: "blue", title: "Paga en línea", text: paymentSentence(profile) },
+    { id: "warranty", tone: "orange", title: `Garantía de ${store.warrantyMonths} meses`, text: "Cubre defectos de fabricación. No cubre daños por uso inadecuado." },
+    ...(profile.pickupLine ? [{ id: "store" as const, tone: "pink" as const, title: "También en la tienda", text: `${profile.pickupLine}.${profile.hours[0] ? " " + profile.hours[0] : ""}` }] : []),
+  ]
+}
+/** The chips and the delivery line of the third step card. */
+export const stepPayments = (profile: StoreProfile) => paymentMethods(profile)
+export const stepShipping = (profile: StoreProfile) => shippingBadge(profile)

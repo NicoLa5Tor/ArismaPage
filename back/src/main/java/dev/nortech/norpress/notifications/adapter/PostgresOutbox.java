@@ -44,5 +44,8 @@ public class PostgresOutbox implements Outbox {
     public List<Map<String, Object>> latest(int limit, int offset) {
         return Jdbc.with(db, c -> Jdbc.list(c, "SELECT id,kind,recipient,subject,body_html,status,attempts,last_error,created_at,sent_at FROM mail_outbox ORDER BY created_at DESC, id LIMIT ? OFFSET ?", limit, offset));
     }
+    public int forget(Instant before) {
+        return Jdbc.with(db, c -> Jdbc.update(c, "UPDATE mail_outbox SET body_text='', body_html='', attachments='[]'::jsonb WHERE created_at < ? AND status IN ('sent','stored','failed') AND (body_html<>'' OR body_text<>'')", before));
+    }
     public long count() { return Jdbc.with(db, c -> Jdbc.count(c, "SELECT count(*) AS n FROM mail_outbox")); }
 }

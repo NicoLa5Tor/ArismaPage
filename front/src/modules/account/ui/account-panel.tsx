@@ -8,6 +8,7 @@ import { type SocialProvider, emailError, nameError, passwordError, safeNext } f
 import { useAccount, useAccountPort } from "./account-context"
 import { AccountHome } from "./account-home"
 import { useStoreProfile } from "../../shared/ui/store-profile"
+import { legalHref } from "../../shared/domain/store-profile"
 import { useHumanCheck } from "../../shared/ui/human-check"
 
 type Mode = "login" | "register"
@@ -19,22 +20,25 @@ export function AccountPanel({ next, reason }: { next: string; reason?: string }
   const port = useAccountPort()
   const { session, ready, lost, setSession } = useAccount()
   const [mode, setMode] = useState<Mode>("login")
-  const [name, setName] = useState(""), [email, setEmail] = useState(""), [password, setPassword] = useState("")
+  const [name, setName] = useState(""), [email, setEmail] = useState(""), [password, setPassword] = useState(""), [accepts, setAccepts] = useState(false)
   const [busy, setBusy] = useState<"form" | SocialProvider | null>(null)
   const [error, setError] = useState(""), [touched, setTouched] = useState(false)
   const target = safeNext(next)
   const human = useHumanCheck(mode === "login" ? "login" : "registro")
 
-  const problems = { name: mode === "register" ? nameError(name) : null, email: emailError(email), password: mode === "register" ? passwordError(password) : password ? null : "Escribe tu contraseña" }
-  const shown = touched ? problems : { name: null, email: null, password: null }
+  const problems = { name: mode === "register" ? nameError(name) : null, email: emailError(email), password: mode === "register" ? passwordError(password) : password ? null : "Escribe tu contraseña",
+    accepts: mode === "register" && !accepts ? "Para crear tu cuenta, autoriza el tratamiento de tus datos." : null }
+  const shown = touched ? problems : { name: null, email: null, password: null, accepts: null }
+  const terms = legalHref(profile, "terms"), privacy = legalHref(profile, "privacy")
+  const doc = (href: string | undefined, label: string) => href ? <a href={href} target="_blank" rel="noopener noreferrer">{label}</a> : label
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setTouched(true); setError("")
-    if (problems.name || problems.email || problems.password) return
+    if (problems.name || problems.email || problems.password || problems.accepts) return
     if (!human.ready) { setError("Estamos confirmando que eres una persona. Espera un momento y vuelve a intentarlo."); return }
     setBusy("form")
     try {
-      setSession(mode === "login" ? await port.login(email.trim(), password, human.token) : await port.register(name.trim(), email.trim(), password, human.token))
+      setSession(mode === "login" ? await port.login(email.trim(), password, human.token) : await port.register(name.trim(), email.trim(), password, accepts, human.token))
       setPassword(""); setTouched(false)
       // straight back to where the shopper was; staying on /cuenta shows the account
       if (target !== "/" && target !== "/cuenta") router.replace(target)
@@ -66,6 +70,7 @@ export function AccountPanel({ next, reason }: { next: string; reason?: string }
         <button type="button" className="account-social-button squircle" onClick={() => void social("google")} disabled={busy !== null}>{busy === "google" ? <CircleNotch className="spin" size={20} aria-hidden="true" /> : <GoogleLogo size={20} weight="bold" aria-hidden="true" />} Continuar con Google</button>
         <button type="button" className="account-social-button squircle" onClick={() => void social("facebook")} disabled={busy !== null}>{busy === "facebook" ? <CircleNotch className="spin" size={20} aria-hidden="true" /> : <FacebookLogo size={20} weight="fill" aria-hidden="true" />} Continuar con Facebook</button>
       </div>
+      <p className="account-legal">Al continuar con Google o Facebook aceptas los {doc(terms, "términos y condiciones")} y autorizas el tratamiento de tus datos según la {doc(privacy, "política de datos")}.</p>
       <p className="account-divider"><span>o con tu correo</span></p>
 
       <form className="account-form" onSubmit={submit} noValidate>
@@ -84,6 +89,11 @@ export function AccountPanel({ next, reason }: { next: string; reason?: string }
           {shown.password ? <span className="store-field-error">{shown.password}</span> : mode === "register" ? <span className="store-field-hint">Mínimo 8 caracteres.</span> : null}
         </label>
         {mode === "login" && <Link href="/cuenta/recuperar" className="account-forgot">¿Olvidaste tu contraseña?</Link>}
+        {mode === "register" && (
+          <label className="checkout-terms"><input type="checkbox" checked={accepts} onChange={(e) => setAccepts(e.target.checked)} aria-invalid={Boolean(shown.accepts)} />
+            <span>Acepto los {doc(terms, "términos y condiciones")} y autorizo a {profile.legalName || profile.name} a tratar mis datos según su {doc(privacy, "política de tratamiento de datos")}.</span></label>
+        )}
+        {shown.accepts && <span className="store-field-error">{shown.accepts}</span>}
         {human.widget}
         {error && <p className="store-alert" role="alert">{error}</p>}
         <button type="submit" className="button-primary account-submit" disabled={busy !== null}>{busy === "form" ? <><CircleNotch className="spin" size={18} aria-hidden="true" /> Un momento…</> : mode === "login" ? "Entrar" : "Crear cuenta"}</button>

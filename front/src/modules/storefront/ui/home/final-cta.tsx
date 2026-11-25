@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import gsap from "gsap"
-import { ArrowRight, Clock, FacebookLogo, InstagramLogo, MapPin, Phone, WhatsappLogo, YoutubeLogo } from "@phosphor-icons/react"
+import { ArrowRight, Clock, EnvelopeSimple, FacebookLogo, InstagramLogo, MapPin, Phone, WhatsappLogo, YoutubeLogo } from "@phosphor-icons/react"
 import { type CatalogCategory } from "../../domain/catalog"
 import { store } from "../../domain/home"
 import { categoryIcon } from "../catalog/category-icons"
@@ -10,7 +10,7 @@ import { Marquee } from "./marquee"
 import { type Scene, useScene } from "./scene"
 import { useStoreProfile, useWhatsapp } from "../../../shared/ui/store-profile"
 import { legalHref } from "../../../shared/domain/store-profile"
-import type { LegalKind } from "../../../shared/domain/legal"
+import { LEGAL_KINDS, LEGAL_LABELS, type LegalKind } from "../../../shared/domain/legal"
 import { optimized } from "../../../shared/ui/optimized-image"
 
 // The brand name rises letter by letter as the page ends; on desktop the main button leans towards the cursor.
@@ -57,6 +57,7 @@ export function FinalCta({ categories }: { categories: CatalogCategory[] }) {
 
 export function SiteFooter() {
   const whatsappUrl = useWhatsapp()
+  const profile = useStoreProfile()
   return (
     <footer className="site-footer">
       <div className="home-inner site-footer-grid">
@@ -69,18 +70,19 @@ export function SiteFooter() {
             <li><a href={store.youtube} target="_blank" rel="noopener noreferrer" aria-label="Arisma en YouTube"><YoutubeLogo size={24} aria-hidden="true" /></a></li>
           </ul>
         </div>
-        <div>
+        {(profile.pickupLine || profile.hours.length > 0) && <div>
           <h2>Tienda</h2>
           <ul>
-            <li><MapPin size={18} aria-hidden="true" /> <span>{store.address}<br />{store.city}</span></li>
-            <li><Clock size={18} aria-hidden="true" /> <span>{store.hours[0]}<br />{store.hours[1]}</span></li>
+            {profile.pickupLine && <li><MapPin size={18} aria-hidden="true" /> <span>{profile.pickupLine}</span></li>}
+            {profile.hours.length > 0 && <li><Clock size={18} aria-hidden="true" /> <span>{profile.hours.map((h, i) => <span key={h}>{i > 0 && <br />}{h}</span>)}</span></li>}
           </ul>
-        </div>
+        </div>}
         <div>
           <h2>Contacto</h2>
           <ul>
-            <li><Phone size={18} aria-hidden="true" /> <a href={store.phone.href}>{store.phone.label}</a></li>
-            <li><WhatsappLogo size={18} aria-hidden="true" /> <a href={whatsappUrl("Hola, quiero información sobre sus productos")} target="_blank" rel="noopener noreferrer">{store.mobile.label}</a></li>
+            {profile.phone && <li><Phone size={18} aria-hidden="true" /> <a href={`tel:${profile.phone.replace(/[^\d+]/g, "")}`}>{profile.phone}</a></li>}
+            {profile.whatsapp && <li><WhatsappLogo size={18} aria-hidden="true" /> <a href={whatsappUrl("Hola, quiero información sobre sus productos")} target="_blank" rel="noopener noreferrer">{profile.whatsappLabel}</a></li>}
+            {profile.email && <li><EnvelopeSimple size={18} aria-hidden="true" /> <a href={`mailto:${profile.email}`}>{profile.email}</a></li>}
           </ul>
         </div>
         <nav aria-label="Enlaces del sitio">
@@ -88,14 +90,9 @@ export function SiteFooter() {
           <ul>
             <li><Link href="/productos">Productos</Link></li>
             <li><Link href="/buscar">Pregúntale a Arisma</Link></li>
-            <LegalLink kind="terms">Términos y condiciones</LegalLink>
-            <LegalLink kind="privacy">Tratamiento de datos</LegalLink>
+            {LEGAL_KINDS.map((kind) => <LegalLink key={kind} kind={kind}>{LEGAL_LABELS[kind]}</LegalLink>)}
           </ul>
         </nav>
-      </div>
-      <div className="home-inner site-footer-legal">
-        <p>© {new Date().getFullYear()} {store.legalName} NIT {store.taxId}</p>
-        <Link href="/admin">Administración</Link>
       </div>
     </footer>
   )

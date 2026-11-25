@@ -40,7 +40,12 @@ public class NotificationService {
     public void verifyEmail(String to, String name, String link) { queue(() -> Templates.verifyEmail(brand(), to, name, link)); }
     public void resetPassword(String to, String name, String link) { queue(() -> Templates.resetPassword(brand(), to, name, link)); }
 
-    Brand brand() { var p = settings.profile(); return new Brand(p.name(), p.signature(), p.color()); }
+    Brand brand() {
+        var p = settings.profile();
+        String terms = site == null || site.isBlank() ? "" : "Términos y políticas: " + site.replaceAll("/+$", "") + "/terminos-y-condiciones-de-uso";
+        return new Brand(p.name(), p.signature(), p.color(), String.join(" · ", java.util.stream.Stream.of(p.legalLine(), terms).filter(x -> !x.isEmpty()).toList()));
+    }
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "norpress.public-url", defaultValue = "") String site;
 
     /** Sends right away, outside the outbox rounds, and says what the server answered. */
     @Transactional
@@ -87,6 +92,9 @@ public class NotificationService {
 
     public List<Map<String, Object>> latest(int limit, int offset) { return outbox.latest(Math.clamp(limit, 1, 100), Math.max(0, offset)); }
     public long count() { return outbox.count(); }
+    /** How long the store keeps the content of the emails it sent: long enough to answer a question about one. */
+    public static final java.time.Duration KEEP_BODIES = java.time.Duration.ofDays(180);
+    public int forgetOld() { return outbox.forget(clock.instant().minus(KEEP_BODIES)); }
 
     private void queue(java.util.function.Supplier<Message> build) {
         Message message;

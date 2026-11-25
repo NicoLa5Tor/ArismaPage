@@ -1,24 +1,24 @@
 import Link from "next/link"
 import { ArrowRight, DownloadSimple, FilePdf } from "@phosphor-icons/react/ssr"
-import { LEGAL_PATHS, legalAnchor, legalDocumentHref, type LegalKind, type LegalPage } from "../../../shared/domain/legal"
+import { LEGAL_KINDS, LEGAL_LABELS, LEGAL_PATHS, legalAnchor, legalDocumentHref, type LegalKind, type PublishedLegalPage } from "../../../shared/domain/legal"
 import type { StoreProfile } from "../../../shared/domain/store-profile"
 import { StoreHeader } from "../store-header"
 
-const OTHER: Record<LegalKind, { kind: LegalKind; label: string }> = {
-  terms: { kind: "privacy", label: "Política de tratamiento de datos" },
-  privacy: { kind: "terms", label: "Términos y condiciones de uso" },
+const published = (date: string) => {
+  const at = new Date(date)
+  return Number.isNaN(at.getTime()) ? "" : at.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Bogota" })
 }
 
 /**
  * A legal page exactly as the store wrote it: its blocks in order, a table of contents built from its titles, and the
  * documents it attaches shown inside the page with a link to open or save them.
  */
-export function LegalView({ kind, page, profile }: { kind: LegalKind; page: LegalPage; profile: StoreProfile }) {
+export function LegalView({ kind, page, profile }: { kind: LegalKind; page: PublishedLegalPage; profile: StoreProfile }) {
   const sections = page.blocks.filter((block) => block.kind === "subheading")
   const contents = (sections.length > 1 ? sections : page.blocks.filter((block) => block.kind === "heading"))
     .map((block) => ("text" in block ? block.text : "")).filter(Boolean)
-  const other = OTHER[kind]
-  const otherHref = profile.legal[other.kind] ? LEGAL_PATHS[other.kind] : null
+  const others = LEGAL_KINDS.filter((other) => other !== kind && profile.legal[other])
+  const date = published(page.publishedAt)
 
   return (
     <main id="contenido" className="storefront catalog legal-page">
@@ -27,6 +27,7 @@ export function LegalView({ kind, page, profile }: { kind: LegalKind; page: Lega
         <p className="eyebrow">Legal</p>
         <h1>{page.title}</h1>
         {profile.legalName && <p className="legal-owner">{profile.legalName}{profile.taxId ? ` · NIT ${profile.taxId}` : ""}</p>}
+        <p className="legal-version">Versión {page.version}{date ? `, vigente desde el ${date}` : ""}</p>
       </header>
       <div className={`legal-layout ${contents.length > 1 ? "has-contents" : ""}`}>
         {contents.length > 1 && (
@@ -61,8 +62,10 @@ export function LegalView({ kind, page, profile }: { kind: LegalKind; page: Lega
               })}
             </section>
           )}
-          {otherHref && (
-            <p className="legal-next"><Link href={otherHref} className="link-arrow">{other.label} <ArrowRight size={16} weight="bold" aria-hidden="true" /></Link></p>
+          {others.length > 0 && (
+            <nav className="legal-next" aria-label="Otras páginas legales">
+              {others.map((other) => <Link key={other} href={LEGAL_PATHS[other]} className="link-arrow">{LEGAL_LABELS[other]} <ArrowRight size={16} weight="bold" aria-hidden="true" /></Link>)}
+            </nav>
           )}
         </article>
       </div>

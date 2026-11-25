@@ -10,6 +10,7 @@ import { usePort } from "../../shared/ui/ports"
 import type { PostsPort } from "../application/posts-port"
 import { LIMITS, type Post, type PostKind, type PostList, bodyError, distribution, formatDate, ratingWords } from "../domain/posts"
 import { useStoreProfile } from "../../shared/ui/store-profile"
+import { legalHref } from "../../shared/domain/store-profile"
 
 const usePosts = () => usePort<PostsPort>("posts")
 
@@ -64,6 +65,7 @@ function PostItem({ post }: { post: Post }) {
 
 function PostForm({ productId, kind, onSent }: { productId: string; kind: PostKind; onSent: (published: boolean) => void }) {
   const profile = useStoreProfile()
+  const privacy = legalHref(profile, "privacy")
   const port = usePosts()
   const { session, ready } = useAccount()
   const path = usePathname()
@@ -94,7 +96,7 @@ function PostForm({ productId, kind, onSent }: { productId: string; kind: PostKi
       <label className="store-field">{kind === "review" ? "Tu opinión" : "Tu pregunta"}
         <textarea rows={kind === "review" ? 4 : 3} maxLength={LIMITS[kind].max} value={body} onChange={(e) => setBody(e.target.value)} aria-invalid={touched && Boolean(problem)}
           placeholder={kind === "review" ? "¿Qué tal salió? ¿Para quién lo compraste?" : "Por ejemplo: ¿qué medidas tiene?, ¿sirve para 4 años?"} />
-        <span className="store-field-hint">Se publica con tu nombre y la inicial de tu apellido. {body.trim().length} de {LIMITS[kind].max}.</span>
+        <span className="store-field-hint">Se publica con tu nombre y la inicial de tu apellido{privacy ? <>, según nuestra <a href={privacy} target="_blank" rel="noopener noreferrer">política de datos</a></> : ""}. {body.trim().length} de {LIMITS[kind].max}.</span>
       </label>
       {touched && problem && <p className="store-field-error" role="alert">{problem}</p>}
       {error && <p className="store-alert" role="alert">{error}</p>}

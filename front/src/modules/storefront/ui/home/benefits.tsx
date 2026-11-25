@@ -4,7 +4,8 @@ import { useEffect, useRef } from "react"
 import gsap from "gsap"
 import { Baby, ChalkboardTeacher, type Icon, Quotes, Truck, WhatsappLogo } from "@phosphor-icons/react"
 import { formatCount } from "../../domain/catalog"
-import { type Benefit, benefits, store, voices } from "../../domain/home"
+import { type Benefit, benefitsFor, store, voices } from "../../domain/home"
+import { useStoreProfile } from "../../../shared/ui/store-profile"
 import { Marquee } from "./marquee"
 import { prefersReducedMotion, useInView } from "./scene"
 
@@ -26,6 +27,7 @@ function CountUp({ stat, run }: { stat: Stat; run: boolean }) {
 }
 
 export function Benefits({ productCount, categoryCount }: { productCount: number; categoryCount: number }) {
+  const benefits = benefitsFor(useStoreProfile())
   const [ref, shown] = useInView<HTMLDivElement>({ threshold: 0.2 })
   const [statsRef, statsShown] = useInView<HTMLDListElement>({ threshold: 0.4 })
   const stats: Stat[] = [

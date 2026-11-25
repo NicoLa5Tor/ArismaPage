@@ -26,6 +26,7 @@ import { OrderDialog } from "../../modules/sales/ui/order-dialog"
 import { OrdersSection } from "../../modules/sales/ui/orders-section"
 import { ModerationSection } from "../../modules/reviews/ui/moderation-section"
 import { StoreSection } from "../../modules/settings/ui/store-section"
+import { SiteSection } from "../../modules/site/ui/site-section"
 import { httpStoreProfile } from "../../modules/shared/adapters/http-store-profile"
 import { SOCIAL_LOGIN_ORIGIN } from "../../modules/shared/domain/brand-assets"
 import { EMPTY_PROFILE, type StoreProfile } from "../../modules/shared/domain/store-profile"
@@ -109,6 +110,7 @@ function Admin() {
       {section === "users" && <UsersSection />}
       {section === "reviews" && <ModerationSection />}
       {section === "store" && <StoreSection />}
+      {section === "site" && <SiteSection />}
     </AdminShell>
     <div className="glass-toast-region" aria-live="polite">{notice && <div role="status" className="glass-toast"><span>{notice}</span><button type="button" className="glass-chip" onClick={() => setNotice("")}>Cerrar</button></div>}</div>
     {open.map(o => o.kind === "order" ? <OrderDialog key={`o-${o.id}`} id={o.id} onClose={() => close(o)} />

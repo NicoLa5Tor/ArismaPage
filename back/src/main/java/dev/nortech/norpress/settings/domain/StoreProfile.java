@@ -58,6 +58,14 @@ public record StoreProfile(String name, String shortName, String legalName, Stri
         if (!whatsapp.isEmpty()) parts.add("WhatsApp " + whatsappLabel());
         return String.join(" · ", parts);
     }
+    /** Who sells: legal name, NIT and contact email, for the foot of emails and pages. Empty parts are left out. */
+    public String legalLine() {
+        var parts = new ArrayList<String>();
+        if (!legalName.isEmpty()) parts.add(legalName);
+        if (!taxId.isEmpty()) parts.add("NIT " + taxId);
+        if (!email.isEmpty()) parts.add(email);
+        return String.join(" · ", parts);
+    }
     /** A Colombian mobile reads as 310 866 9112; any other number is shown as stored. */
     public String whatsappLabel() {
         String local = whatsapp.startsWith("57") && whatsapp.length() == 12 ? whatsapp.substring(2) : null;

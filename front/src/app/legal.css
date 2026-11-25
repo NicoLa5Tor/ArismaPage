@@ -3,6 +3,7 @@
   .legal-hero { @apply mx-auto w-full max-w-6xl px-4 pt-12 pb-8 sm:px-8 lg:pt-16; }
   .legal-hero h1 { @apply mt-2 max-w-3xl text-3xl font-semibold sm:text-5xl; color: var(--ink); }
   .legal-owner { @apply mt-4 text-sm font-semibold text-neutral-600; }
+  .legal-version { @apply mt-2 text-sm text-neutral-500; }
 
   .legal-layout { @apply mx-auto grid w-full max-w-6xl gap-8 px-4 pb-24 sm:px-8 lg:gap-12; }
   .legal-layout.has-contents { @apply lg:grid-cols-[16rem_minmax(0,1fr)]; }
@@ -30,5 +31,5 @@
   .legal-document-save { @apply grid size-11 shrink-0 place-items-center rounded-full bg-neutral-900 text-white transition-colors duration-300 hover:bg-neutral-700 active:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--brand-pink-strong); }
   .legal-document-frame { @apply hidden h-[80vh] w-full border-0 bg-stone-100 sm:block; }
 
-  .legal-next { @apply mt-16; }
+  .legal-next { @apply mt-16 flex flex-col items-start gap-4; }
 }

@@ -12,7 +12,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
-import java.net.InetAddress;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -57,21 +56,7 @@ public class GuardFilter implements ContainerRequestFilter {
                 .entity(Map.of("error", "No pudimos confirmar que eres una persona. Completa la verificación y vuelve a intentarlo.", "code", "human_check")).build());
     }
 
-    private String clientAddress(String forwarded) {
-        String direct = connection == null || connection.remoteAddress() == null ? "" : connection.remoteAddress().hostAddress();
-        if (forwarded != null && !forwarded.isBlank() && trusted(direct)) {
-            String first = forwarded.split(",")[0].trim();
-            if (!first.isEmpty() && first.length() <= 64) return first;
-        }
-        return direct.isEmpty() ? "desconocida" : direct;
-    }
-    private static boolean trusted(String address) {
-        if (address == null || address.isEmpty()) return false;
-        try {
-            var ip = InetAddress.getByName(address);
-            return ip.isLoopbackAddress() || ip.isSiteLocalAddress();
-        } catch (Exception e) { return false; }
-    }
+    private String clientAddress(String forwarded) { return ClientAddress.of(connection, forwarded); }
     /** Drops finished windows once a minute, and everything if a flood of addresses filled the table, so memory stays bounded. */
     private static void sweep(Instant now) {
         long last = LAST_SWEEP.get();

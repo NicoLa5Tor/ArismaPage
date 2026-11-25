@@ -145,11 +145,55 @@ function MyData() {
         {passState && <p className="account-ok" role="status">{passState}</p>}
         <button type="submit" className="order-other squircle" disabled={passBusy}>{passBusy ? "Guardando…" : "Cambiar contraseña"}</button>
       </form>
+      <DataRights />
       <div className="checkout-card squircle">
         <h2>Sesiones</h2>
         <p className="store-field-hint">Cierra tu cuenta en todos los computadores y celulares donde la abriste, incluido este.</p>
         <button type="button" className="order-other squircle" disabled={allBusy} onClick={() => void everywhere()}>{allBusy ? "Cerrando…" : "Cerrar sesión en todas partes"}</button>
       </div>
+    </div>
+  )
+}
+
+/** The shopper's rights over their data (Ley 1581): a copy of it, and erasing the account. */
+function DataRights() {
+  const port = useAccountPort()
+  const { session, setSession } = useAccount()
+  const [downloading, setDownloading] = useState(false), [error, setError] = useState("")
+  const [asking, setAsking] = useState(false), [password, setPassword] = useState(""), [word, setWord] = useState(""), [busy, setBusy] = useState(false)
+  async function download() {
+    setDownloading(true); setError("")
+    try {
+      const url = URL.createObjectURL(await port.exportData())
+      const link = document.createElement("a")
+      link.href = url; link.download = "mis-datos.json"; link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e) { setError(message(e)) } finally { setDownloading(false) }
+  }
+  async function erase(event: FormEvent) {
+    event.preventDefault(); setError("")
+    if (!password && word.trim().toUpperCase() !== "ELIMINAR") { setError("Escribe tu contraseña o, si entras con Google o Facebook, la palabra ELIMINAR."); return }
+    setBusy(true)
+    try { await port.erase(password, word, session!.csrf); setSession(null) }
+    catch (e) { setError(message(e)); setBusy(false) }
+  }
+  return (
+    <div className="checkout-card squircle">
+      <h2>Tus datos</h2>
+      <p className="store-field-hint">Descarga una copia de lo que guardamos de ti: tu cuenta, tus direcciones, tus pedidos y lo que aceptaste.</p>
+      <button type="button" className="order-other squircle" disabled={downloading} onClick={() => void download()}>{downloading ? "Preparando…" : "Descargar mis datos"}</button>
+      {!asking
+        ? <button type="button" className="order-other squircle account-danger" onClick={() => setAsking(true)}>Eliminar mi cuenta</button>
+        : <form className="account-erase" onSubmit={erase} noValidate>
+          <p className="store-field-hint">Borramos tu cuenta, tus direcciones y tus datos personales. Tus pedidos y facturas se conservan el tiempo que exige la ley contable, sin tu cuenta. No se puede deshacer.</p>
+          <label className="store-field">Tu contraseña<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <label className="store-field">Si entras con Google o Facebook, escribe ELIMINAR<input value={word} autoComplete="off" onChange={(e) => setWord(e.target.value)} /></label>
+          <div className="account-erase-actions">
+            <button type="submit" className="order-other squircle account-danger" disabled={busy}>{busy ? "Eliminando…" : "Eliminar mi cuenta para siempre"}</button>
+            <button type="button" className="order-other squircle" disabled={busy} onClick={() => { setAsking(false); setPassword(""); setWord(""); setError("") }}>No, volver</button>
+          </div>
+        </form>}
+      {error && <p className="store-field-error" role="alert">{error}</p>}
     </div>
   )
 }

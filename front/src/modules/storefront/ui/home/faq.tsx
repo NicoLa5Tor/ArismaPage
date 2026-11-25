@@ -3,14 +3,15 @@
 import { useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Plus, WhatsappLogo } from "@phosphor-icons/react"
-import { faqs } from "../../domain/home"
+import { faqsFor } from "../../domain/home"
 import { useInView } from "./scene"
-import { useWhatsapp } from "../../../shared/ui/store-profile"
+import { useStoreProfile, useWhatsapp } from "../../../shared/ui/store-profile"
 
 const ease = [0.22, 1, 0.36, 1] as const
 
 export function Faq() {
   const whatsappUrl = useWhatsapp()
+  const faqs = faqsFor(useStoreProfile())
   const reduce = useReducedMotion()
   const [open, setOpen] = useState<number | null>(0)
   const [ref, shown] = useInView<HTMLDivElement>({ threshold: 0.1 })

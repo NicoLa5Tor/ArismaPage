@@ -2,7 +2,9 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { httpPublicCatalog } from "../../modules/storefront/adapters/http-public-catalog"
 import { type CatalogCategory, type CatalogProduct, mainCategories } from "../../modules/storefront/domain/catalog"
-import { faqs, store } from "../../modules/storefront/domain/home"
+import { faqsFor, store } from "../../modules/storefront/domain/home"
+import { httpStoreProfile } from "../../modules/shared/adapters/http-store-profile"
+import type { StoreProfile } from "../../modules/shared/domain/store-profile"
 import { StorefrontHome } from "../../modules/storefront/ui/storefront-home"
 
 const description = "Rompecabezas, títeres, juegos de mesa y kits de robótica para familias y colegios. Cotiza por WhatsApp y recibe en toda Colombia."
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: { title: "Arisma | Juguetes educativos y material didáctico en Colombia", description, locale: "es_CO", type: "website", images: ["/scroll-world/historia-poster.jpg"] },
 }
 
-const structuredData = [
+const structuredData = (profile: StoreProfile) => [
   {
     "@context": "https://schema.org", "@type": "ToyStore", name: "Arisma", legalName: store.legalName, foundingDate: String(store.since), url: store.site,
     telephone: "+57 601 2102138", sameAs: [store.instagram, store.facebook, store.youtube],
@@ -26,7 +28,7 @@ const structuredData = [
       { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "09:30", closes: "17:30" },
     ],
   },
-  { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqs.map((faq) => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) },
+  { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqsFor(profile).map((faq) => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) },
 ]
 
 const MIN_RANKED = 4
@@ -36,9 +38,10 @@ export default async function Home() {
   // This home is Arisma's own page. A store whose home is not made yet (STORE_HOME=catalogo) opens on its catalog.
   if (process.env.STORE_HOME === "catalogo") redirect("/productos")
   // The catalog chapters are a bonus: if the catalog is unreachable the story and the rest of the page still render.
-  const [categories, highlights] = await Promise.all([
+  const [categories, highlights, profile] = await Promise.all([
     httpPublicCatalog.categories().then(mainCategories).catch((): CatalogCategory[] => []),
     httpPublicCatalog.highlights().catch(() => null),
+    httpStoreProfile.load(),
   ])
   const ranked = (highlights?.bestSellers.length ?? 0) >= MIN_RANKED
   let favorites: CatalogProduct[] = highlights?.bestSellers ?? []
@@ -47,7 +50,7 @@ export default async function Home() {
   }
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(profile)).replace(/</g, "\\u003c") }} />
       <StorefrontHome categories={categories} favorites={favorites} ranked={ranked} productCount={highlights?.productCount ?? 0} />
     </>
   )

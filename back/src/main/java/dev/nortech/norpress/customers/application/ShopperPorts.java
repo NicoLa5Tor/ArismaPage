@@ -66,4 +66,17 @@ public final class ShopperPorts {
         /** How many of that kind were issued for the account since then (to stop a mailbox being flooded). */
         long issuedSince(UUID accountId, TokenPurpose purpose, Instant since);
     }
+
+    /** What the shopper may ask about their own data (Ley 1581): a copy of it, and erasing their account. */
+    public interface AccountData {
+        /** Their account, profile, addresses and orders, as plain data. */
+        java.util.Map<String, Object> export(UUID accountId, UUID customerId);
+        /** Numbers of their orders still on their way (or with money still to give back): while any exists the account stays. */
+        java.util.List<String> unfinishedOrders(UUID accountId);
+        /**
+         * Deletes the account (sessions and links go with it) and the addresses, and blanks the customer's personal data.
+         * Orders stay, with the data written on them, as the accounting and tax rules require.
+         */
+        void erase(UUID accountId, UUID customerId);
+    }
 }

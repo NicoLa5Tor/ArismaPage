@@ -23,7 +23,7 @@ export const httpAccount: AccountPort = {
     catch (error) { if (error instanceof StoreError && error.status === 401) return null; throw error }
   },
   login: (email, password, human) => storeRequest<ShopperSession>("/shop/session", storeJson("POST", { email, password }, undefined, human)),
-  register: (name, email, password, human) => storeRequest<ShopperSession>("/shop/session/register", storeJson("POST", { name, email, password }, undefined, human)),
+  register: (name, email, password, acceptsPrivacy, human) => storeRequest<ShopperSession>("/shop/session/register", storeJson("POST", { name, email, password, acceptsPrivacy }, undefined, human)),
   async logout(csrf) { await storeRequest("/shop/session", { method: "DELETE", headers: { "X-CSRF-Token": csrf } }) },
   async socialStart(provider, next) {
     const url = (await storeRequest<{ url: string }>(`/shop/session/social/start?provider=${encodeURIComponent(provider)}`)).url
@@ -40,6 +40,11 @@ export const httpAccount: AccountPort = {
   rename: (name, csrf) => storeRequest<Shopper>("/shop/account/name", storeJson("PUT", { name }, csrf)),
   async changePassword(current, next, csrf) { await storeRequest("/shop/account/password", storeJson("PUT", { current, next }, csrf)) },
   async logoutEverywhere(csrf) { await storeRequest("/shop/account/logout-everywhere", { method: "POST", headers: { "X-CSRF-Token": csrf } }) },
+  async exportData() {
+    const data = await storeRequest<unknown>("/shop/account/export")
+    return new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+  },
+  async erase(password, confirm, csrf) { await storeRequest("/shop/account/erase", storeJson("POST", { password, confirm }, csrf)) },
   async requestVerification(csrf) { await storeRequest("/shop/account/verification", { method: "POST", headers: { "X-CSRF-Token": csrf } }) },
   async confirmEmail(token) { await storeRequest("/shop/session/verify", storeJson("POST", { token })) },
   async requestReset(email, human) { await storeRequest("/shop/session/reset-request", storeJson("POST", { email }, undefined, human)) },

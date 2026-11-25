@@ -2,7 +2,7 @@
 import type { StoreProfile } from "../../shared/domain/store-profile"
 
 /** The store profile as the administrator edits it (what the backend works out from it is left out). */
-export type Profile = Omit<StoreProfile, "whatsappLabel" | "pickupLine" | "shipping" | "legal" | "turnstileSiteKey">
+export type Profile = Omit<StoreProfile, "whatsappLabel" | "pickupLine" | "shipping" | "legal" | "shopperCancels" | "payment" | "turnstileSiteKey">
 
 export type Conversations = { reviews: boolean; questions: boolean; manualModeration: boolean; buyersOnly: boolean; customerReplies: boolean }
 /** Pesos with tax included. localRate is for the store's city (its profile); freeFromLocal null: local delivery is never free. */

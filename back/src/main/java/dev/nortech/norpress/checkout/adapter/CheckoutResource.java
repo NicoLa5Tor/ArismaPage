@@ -24,13 +24,13 @@ public class CheckoutResource {
     public record LineInput(UUID productId, int quantity) {}
     /** delivery: "local", "national", "pickup" or empty when not chosen yet. coupon and email are optional. */
     public record QuoteInput(List<LineInput> lines, String delivery, String coupon, String email) {}
-    public record BuyerInput(String firstName, String lastName, String email, String phone, String documentType, String documentNumber, String company,
-                             boolean pickup, String address, String addressDetail, String city, String state, String note) {}
-    public record OrderInput(List<LineInput> lines, BuyerInput buyer, String coupon, boolean acceptsTerms) {}
     public record ContactInput(String firstName, String lastName, String phone, String documentType, String documentNumber, String company) {}
     /** An order from a signed-in buyer: a saved address (or pickup) and their contact data. */
     public record AccountOrderInput(List<LineInput> lines, ContactInput contact, boolean pickup, UUID addressId, String note, String coupon, boolean acceptsTerms) {}
     @Inject dev.nortech.norpress.customers.application.ShopperAddressService addresses;
+    @Inject dev.nortech.norpress.settings.application.LegalService legal;
+    /** What a buyer accepts when placing an order: every document the store has published, in its latest version. */
+    static final List<String> ACCEPTED = dev.nortech.norpress.settings.domain.LegalPages.KINDS;
 
     @GET @Path("/options") public Response options() { return Response.ok(checkout.options()).header("Cache-Control", "no-store").build(); }
 
@@ -39,11 +39,14 @@ public class CheckoutResource {
         return checkout.quote(lines(in.lines()), delivery(in.delivery()), in.coupon(), in.email());
     }
 
-    @POST @Path("/orders") public Response place(AccountOrderInput in, @CookieParam("norpress_cliente") String token) {
+    /** The order and the proof of what the buyer accepted are written together: one never exists without the other. */
+    @POST @Path("/orders") @jakarta.transaction.Transactional
+    public Response place(AccountOrderInput in, @CookieParam("norpress_cliente") String token, @HeaderParam("X-Forwarded-For") String forwarded, @HeaderParam("User-Agent") String agent,
+                          @jakarta.ws.rs.core.Context io.vertx.core.http.HttpServerRequest connection) {
         // the order needs an account; the cookie names the buyer (no CSRF token: placing an order changes nothing of the account)
         var shopper = shoppers.authenticate(token, null, false).orElseThrow(() -> new dev.nortech.norpress.shared.domain.Unauthorized("Inicia sesión para comprar"));
         if (in == null || in.contact() == null) throw new IllegalArgumentException("Faltan tus datos");
-        if (!in.acceptsTerms()) throw new IllegalArgumentException("Acepta los términos y la política de datos para continuar");
+        if (!in.acceptsTerms()) throw new IllegalArgumentException("Acepta los términos y las políticas de la tienda para continuar");
         var c = in.contact();
         var profile = addresses.saveProfile(shopper, new dev.nortech.norpress.customers.domain.Profile(c.firstName(), c.lastName(), c.phone(), c.documentType(), c.documentNumber(), c.company()));
         Buyer buyer; Buyer.Destination to = null;
@@ -54,6 +57,7 @@ public class CheckoutResource {
             to = new Buyer.Destination(a.firstName(), a.lastName(), a.phone(), a.neighborhood(), a.instructions(), a.label().db());
         }
         var placed = checkout.place(lines(in.lines()), buyer, to, in.coupon(), java.util.Optional.of(shopper), site.replaceAll("/+$", ""));
+        legal.accept(ACCEPTED, "checkout", placed.number(), shopper.accountId(), dev.nortech.norpress.shared.adapter.ClientAddress.of(connection, forwarded), agent);
         return Response.status(201).entity(placed).header("Cache-Control", "no-store").build();
     }
 

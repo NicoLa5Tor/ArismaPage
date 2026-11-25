@@ -6,7 +6,8 @@ export interface AccountPort {
   restore(): Promise<ShopperSession | null>
   /** `human` is the Turnstile token when the store asks for one; sign-in, sign-up and the reset request need it then. */
   login(email: string, password: string, human?: string): Promise<ShopperSession>
-  register(name: string, email: string, password: string, human?: string): Promise<ShopperSession>
+  /** acceptsPrivacy: they authorized the treatment of their data and accepted the terms (required). */
+  register(name: string, email: string, password: string, acceptsPrivacy: boolean, human?: string): Promise<ShopperSession>
   logout(csrf: string): Promise<void>
   /** Address of the identity provider's sign-in page; it also remembers where to come back to after it. */
   socialStart(provider: SocialProvider, next: string): Promise<string>
@@ -17,6 +18,10 @@ export interface AccountPort {
   /** `current` is ignored for accounts that never had a password (made with Google or Facebook). Other sessions close. */
   changePassword(current: string, next: string, csrf: string): Promise<void>
   logoutEverywhere(csrf: string): Promise<void>
+  /** Everything the store keeps about the shopper, as JSON to save (Ley 1581). */
+  exportData(): Promise<Blob>
+  /** Erases the account: the password, or for one without a password the word ELIMINAR. */
+  erase(password: string, confirm: string, csrf: string): Promise<void>
   /** Emails a link that confirms the address. */
   requestVerification(csrf: string): Promise<void>
   confirmEmail(token: string): Promise<void>

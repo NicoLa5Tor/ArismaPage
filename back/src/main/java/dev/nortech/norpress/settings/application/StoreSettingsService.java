@@ -1,7 +1,5 @@
 package dev.nortech.norpress.settings.application;
 import dev.nortech.norpress.catalog.domain.PageSections;
-import dev.nortech.norpress.media.application.ObjectStore;
-import dev.nortech.norpress.shared.domain.NotFound;
 import dev.nortech.norpress.settings.application.SettingsPorts.*;
 import dev.nortech.norpress.settings.domain.*;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,7 +17,6 @@ public class StoreSettingsService {
     @Inject SettingsRepository settings;
     @Inject CredentialRepository credentials;
     @Inject SecretVault vault;
-    @Inject ObjectStore files;
 
     public StoreProfile profile() { return StoreProfile.fromMap(settings.read(StoreProfile.KEY).orElse(null)); }
     public Conversations conversations() { return Conversations.fromMap(settings.read(Conversations.KEY).orElse(null)); }
@@ -35,29 +32,6 @@ public class StoreSettingsService {
         try { return PageSections.parse(choices); } catch (IllegalArgumentException e) { return PageSections.INHERIT_ALL; }
     }
 
-    public LegalPages legal() { return LegalPages.fromMap(settings.read(LegalPages.KEY).orElse(null)); }
-    /** Every document a page attaches must already be stored, so a page never links to a missing file. */
-    @Transactional public LegalPages save(LegalPages value, UUID actor) {
-        for (var page : List.of(value.terms(), value.privacy())) for (var document : page.documents()) {
-            try { files.get(LEGAL_FILES + document.file()); }
-            catch (NotFound e) { throw new IllegalArgumentException("Sube primero el archivo " + document.file()); }
-        }
-        settings.write(LegalPages.KEY, value.toMap(), actor);
-        return value;
-    }
-    /** A PDF for the legal pages, stored under its name; the same name replaces it. */
-    public void storeLegalFile(String file, byte[] bytes) {
-        if (file == null || !LegalPages.Document.FILE.matcher(file).matches()) throw new IllegalArgumentException("El documento debe ser un PDF con un nombre en minúsculas, sin espacios");
-        if (bytes == null || bytes.length < 5 || !new String(bytes, 0, 5, java.nio.charset.StandardCharsets.US_ASCII).equals("%PDF-")) throw new IllegalArgumentException("El archivo no es un PDF");
-        if (bytes.length > 15 * 1024 * 1024) throw new IllegalArgumentException("El PDF admite hasta 15 MB");
-        files.put(LEGAL_FILES + file, bytes, "application/pdf");
-    }
-    /** A document of a published legal page; any other name is not found. */
-    public ObjectStore.StoredObject legalFile(String file) {
-        if (file == null || !legal().attaches(file)) throw new NotFound("Ese documento no existe");
-        return files.get(LEGAL_FILES + file);
-    }
-    static final String LEGAL_FILES = "legal/";
 
     @Transactional public StoreProfile save(StoreProfile value, UUID actor) { settings.write(StoreProfile.KEY, value.toMap(), actor); return value; }
     @Transactional public Conversations save(Conversations value, UUID actor) { settings.write(Conversations.KEY, value.toMap(), actor); return value; }

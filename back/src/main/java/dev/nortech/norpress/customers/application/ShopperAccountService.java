@@ -27,6 +27,8 @@ public class ShopperAccountService {
     @Inject PasswordHasher hasher;
     @Inject Secrets secrets;
     @Inject NotificationService notifications;
+    @Inject AccountData data;
+    @Inject dev.nortech.norpress.settings.application.LegalService legal;
     Clock clock = Clock.systemUTC();
 
     @Transactional
@@ -47,6 +49,32 @@ public class ShopperAccountService {
     }
     @Transactional
     public void logoutEverywhere(Shopper shopper) { shoppers.deleteSessions(shopper.accountId(), null); }
+
+    /** Everything the store keeps about the shopper, for them to download, with what they accepted and when. */
+    public java.util.Map<String, Object> export(Shopper shopper) {
+        var out = new java.util.LinkedHashMap<>(data.export(shopper.accountId(), shopper.customerId()));
+        out.put("acceptances", legal.acceptances(shopper.accountId()));
+        out.put("exportedAt", clock.instant().toString());
+        return out;
+    }
+    /** The word an account without a password types to confirm it is being erased. */
+    public static final String ERASE_WORD = "ELIMINAR";
+    /**
+     * Erases the shopper's account. They confirm with their password (or, for a Google or Facebook account, by typing
+     * ELIMINAR). Not while an order is on its way or money is still to come back to them: the store needs the account to
+     * finish it with them.
+     */
+    @Transactional(dontRollbackOn = Unauthorized.class)
+    public void erase(Shopper shopper, String password, String confirm) {
+        var stored = shoppers.find(shopper.accountId()).orElseThrow(() -> new Unauthorized("Inicia sesión para continuar"));
+        if (stored.passwordHash() != null) {
+            if (password == null || !hasher.verify(password, stored.passwordHash())) throw new Unauthorized("Tu contraseña no es correcta");
+        } else if (confirm == null || !confirm.trim().equalsIgnoreCase(ERASE_WORD)) throw new IllegalArgumentException("Escribe " + ERASE_WORD + " para confirmar");
+        var open = data.unfinishedOrders(shopper.accountId());
+        if (!open.isEmpty()) throw new dev.nortech.norpress.shared.domain.Conflict((open.size() == 1 ? "Tu pedido #" + open.get(0) + " aún no ha terminado" : "Tus pedidos #" + String.join(", #", open) + " aún no han terminado")
+            + ". Cuando lleguen (o te devolvamos el dinero) podrás eliminar tu cuenta.");
+        data.erase(shopper.accountId(), shopper.customerId());
+    }
 
     /** Sends the confirmation link. Verified accounts do not need it. */
     @Transactional

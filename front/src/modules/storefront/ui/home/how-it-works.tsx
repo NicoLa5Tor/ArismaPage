@@ -3,7 +3,8 @@
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { ArrowRight, Bank, Checks, CreditCard, MagnifyingGlass, Package, Truck, WhatsappLogo } from "@phosphor-icons/react"
-import { stepArt, steps } from "../../domain/home"
+import { stepArt, stepPayments, stepShipping, steps } from "../../domain/home"
+import { useStoreProfile } from "../../../shared/ui/store-profile"
 import { type Scene, useScene } from "./scene"
 import { optimized } from "../../../shared/ui/optimized-image"
 
@@ -49,6 +50,7 @@ function build(root: HTMLElement, { desktop, short }: Scene) {
 }
 
 function StepArt({ id, product }: { id: (typeof steps)[number]["id"]; product: string }) {
+  const profile = useStoreProfile()
   if (id === "choose") {
     return (
       <div className="how-art how-art-choose" aria-hidden="true">
@@ -73,9 +75,9 @@ function StepArt({ id, product }: { id: (typeof steps)[number]["id"]; product: s
         <span className="how-box-front squircle"><Package size={40} weight="duotone" /></span>
       </div>
       <ul className="how-pay">
-        {stepArt.payments.map((payment, index) => <li key={payment} style={{ "--i": index } as React.CSSProperties}>{index === 0 ? <CreditCard size={16} weight="fill" /> : index === 3 ? <Bank size={16} weight="fill" /> : null} {payment}</li>)}
+        {stepPayments(profile).map((payment, index) => <li key={payment} style={{ "--i": index } as React.CSSProperties}>{payment === "Tarjeta" ? <CreditCard size={16} weight="fill" /> : payment === "Bancolombia" || payment === "Transferencia" ? <Bank size={16} weight="fill" /> : null} {payment}</li>)}
       </ul>
-      <p className="how-ship"><Truck size={20} weight="fill" /> {stepArt.shipping}</p>
+      <p className="how-ship"><Truck size={20} weight="fill" /> {stepShipping(profile)}</p>
     </div>
   )
 }

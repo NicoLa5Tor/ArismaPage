@@ -7,6 +7,8 @@ import { httpStoreProfile } from "../../../../modules/shared/adapters/http-store
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "../../../../modules/storefront/domain/product"
 import { Conversations } from "../../../../modules/reviews/ui/conversations"
 import { ProductView } from "../../../../modules/storefront/ui/product/product-view"
+import { LEGAL_PATHS } from "../../../../modules/shared/domain/legal"
+import { siteUrl } from "../../../../modules/shared/domain/store-profile"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -21,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = metaDescription(detail, profile.name)
   const image = productImageSrc(detail.product)
   return {
-    metadataBase: profile.site ? new URL(profile.site) : undefined,
+    metadataBase: new URL(siteUrl(profile)),
     title, description,
     robots: { index: true, follow: true },
     alternates: { canonical: `/producto/${encodeURIComponent(detail.product.slug)}` },
@@ -33,12 +35,12 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params
   const [detail, profile] = await Promise.all([load(slug), httpStoreProfile.load()])
   if (!detail) notFound()
-  const site = profile.site.replace(/\/+$/, "")
-  const structured = [productJsonLd(detail, site, profile.name), breadcrumbJsonLd(detail, site)]
+  const site = siteUrl(profile)
+  const structured = [productJsonLd(detail, site, profile.name, profile.legal.returns ? `${site}${LEGAL_PATHS.returns}` : undefined), breadcrumbJsonLd(detail, site)]
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, "\\u003c") }} />
-      <ProductView detail={detail} shipsFrom={profile.localCity}>
+      <ProductView detail={detail} profile={profile}>
         <Conversations productId={detail.product.id} reviews={detail.sections.reviews} questions={detail.sections.questions} reviewCount={detail.rating.count} />
       </ProductView>
     </>

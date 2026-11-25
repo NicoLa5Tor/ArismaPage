@@ -8,6 +8,10 @@ module.exports = {
   // Photos are served as WebP at the width each screen needs (modules/shared/ui/optimized-image.ts) and cached for 30
   // days. Historical product photos still live on the WordPress site until the media migration; the hosts here must
   // match OPTIMIZED_HOSTS in that file.
+  // the store's error pages run in a sandboxed frame (modules/shared/ui/error-frame.tsx): its fonts load from another origin
+  async headers() {
+    return [{ source: "/_next/static/media/:path*", headers: [{ key: "Access-Control-Allow-Origin", value: "*" }] }]
+  },
   images: {
     formats: ["image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,

@@ -15,8 +15,12 @@ export type StoreProfile = {
   pickupLine: string
   /** Delivery terms, pesos with tax included: free local delivery from freeFromLocal (null: never), smallest order. */
   shipping: { localRate: number; nationalRate: number; freeFromLocal: number | null; pickup: boolean; minimumOrder: number }
-  /** Which legal pages the store wrote itself and shows on its own addresses. */
+  /** Which legal pages the store published itself and shows on its own addresses. */
   legal: Record<LegalKind, boolean>
+  /** Shoppers may cancel their order on their own while it has not left. */
+  shopperCancels: boolean
+  /** The method shoppers pay with right now (wompi, payu, manual); null when the store takes no payments. */
+  payment: { code: string; label: string } | null
   /** Cloudflare Turnstile's public key; empty when the store does not ask for the challenge on sign-in. */
   turnstileSiteKey: string
 }
@@ -26,13 +30,15 @@ export const EMPTY_PROFILE: StoreProfile = {
   name: "Tienda", shortName: "la tienda", legalName: "", taxId: "", address: "", addressDetail: "", localCity: "", localState: "",
   whatsapp: "", whatsappLabel: "", phone: "", email: "", hours: [], site: "", termsUrl: "", privacyUrl: "", color: "#1d1a23", pickupLine: "",
   shipping: { localRate: 0, nationalRate: 0, freeFromLocal: null, pickup: false, minimumOrder: 0 },
-  legal: { terms: false, privacy: false }, turnstileSiteKey: "",
+  legal: { terms: false, privacy: false, returns: false, shipping: false }, shopperCancels: false, payment: null, turnstileSiteKey: "",
 }
 
 /** Where a legal page is read: the store's own page when it wrote one, else the address in its profile; undefined when it has neither. */
 export function legalHref(profile: Pick<StoreProfile, "legal" | "termsUrl" | "privacyUrl">, kind: LegalKind): string | undefined {
   if (profile.legal?.[kind]) return LEGAL_PATHS[kind]
-  return (kind === "terms" ? profile.termsUrl : profile.privacyUrl) || undefined
+  if (kind === "terms") return profile.termsUrl || undefined
+  if (kind === "privacy") return profile.privacyUrl || undefined
+  return undefined
 }
 
 /** A WhatsApp chat with the store, with the first message written; undefined when the store has no WhatsApp. */
@@ -48,3 +54,43 @@ export function isLocal(profile: Pick<StoreProfile, "localCity" | "localState">,
 }
 /** "Envío en Medellín", or a neutral word when the store has no local area. */
 export const localArea = (profile: Pick<StoreProfile, "localCity">) => profile.localCity || "tu ciudad"
+
+const pesos = (value: number) => `$${Math.round(value).toLocaleString("es-CO")}`
+/** How delivery works, in one sentence, from the store's real rates: never a promise the checkout does not keep. */
+export function shippingSentence(profile: Pick<StoreProfile, "shipping" | "localCity">): string {
+  const s = profile.shipping, area = profile.localCity || "la zona local"
+  const local = s.freeFromLocal != null ? `En ${area} el envío es gratis en compras desde ${pesos(s.freeFromLocal)}; si no, cuesta ${pesos(s.localRate)}.` : `En ${area} el envío cuesta ${pesos(s.localRate)}.`
+  return `Despachamos a todo el país. ${local} Al resto de Colombia, ${pesos(s.nationalRate)}.`
+}
+/** Short version for a badge: the free delivery threshold, else the national reach. */
+export function shippingBadge(profile: Pick<StoreProfile, "shipping" | "localCity">): string {
+  const s = profile.shipping
+  return s.freeFromLocal != null ? `Envío gratis en ${profile.localCity || "la zona local"} desde ${pesos(s.freeFromLocal)}` : "Envíos a toda Colombia"
+}
+/** The ways to pay the active method offers, as shoppers know them. Empty when the store takes no payments. */
+export function paymentMethods(profile: Pick<StoreProfile, "payment">): string[] {
+  switch (profile.payment?.code) {
+    case "wompi": return ["Tarjeta", "PSE", "Nequi", "Bancolombia"]
+    case "payu": return ["Tarjeta", "PSE", "Efectivo"]
+    case "manual": return ["Transferencia"]
+    default: return []
+  }
+}
+export function paymentSentence(profile: Pick<StoreProfile, "payment">): string {
+  switch (profile.payment?.code) {
+    case "wompi": return "Con tarjeta de crédito o débito, PSE, Nequi o botón Bancolombia, a través de Wompi."
+    case "payu": return "Con tarjeta de crédito o débito, PSE o en efectivo, a través de PayU."
+    case "manual": return "Por transferencia: al hacer el pedido te enviamos los datos para pagar."
+    default: return "Escríbenos por WhatsApp y te ayudamos a completar la compra."
+  }
+}
+/** The minimum order, as a sentence; empty when there is none. */
+export function minimumSentence(profile: Pick<StoreProfile, "shipping">): string {
+  return profile.shipping.minimumOrder > 0 ? `La compra mínima por la página es de ${pesos(profile.shipping.minimumOrder)}.` : ""
+}
+
+/** The store's public address without the final slash: its profile, else the server's NORPRESS_PUBLIC_URL. */
+export function siteUrl(profile: Pick<StoreProfile, "site">): string {
+  const site = profile.site || process.env.NORPRESS_PUBLIC_URL || "http://localhost:8000"
+  return site.replace(/\/+$/, "")
+}

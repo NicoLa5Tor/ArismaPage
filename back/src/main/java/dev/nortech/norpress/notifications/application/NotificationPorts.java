@@ -27,5 +27,7 @@ public final class NotificationPorts {
         /** Newest first, for the panel; with the HTML so it can be previewed. */
         List<Map<String, Object>> latest(int limit, int offset);
         long count();
+        /** Empties the bodies of emails sent before that moment: who, what and when stay; their content goes. Answers how many. */
+        int forget(Instant before);
     }
 }

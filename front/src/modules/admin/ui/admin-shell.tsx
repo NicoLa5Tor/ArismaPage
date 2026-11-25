@@ -2,13 +2,13 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { ChatsCircle, Storefront, ChartBar, Receipt, Users, FileText, Package, Tag, Stack, Ticket, Percent, SignOut, List, SquaresFour, UsersThree, X, type Icon } from "@phosphor-icons/react"
+import { Browser, ChatsCircle, Storefront, ChartBar, Receipt, Users, FileText, Package, Tag, Stack, Ticket, Percent, SignOut, List, SquaresFour, UsersThree, X, type Icon } from "@phosphor-icons/react"
 import type { Permission } from "../../shared/domain/permission"
 import { Avatar } from "../../shared/ui/rich"
 import { BRAND_ICON } from "../../shared/domain/brand-assets"
 import { useStoreProfile } from "../../shared/ui/store-profile"
 
-export type AdminSection = "summary" | "orders" | "customers" | "quotes" | "products" | "categories" | "inventory" | "coupons" | "settings" | "users" | "reviews" | "store"
+export type AdminSection = "summary" | "orders" | "customers" | "quotes" | "products" | "categories" | "inventory" | "coupons" | "settings" | "users" | "reviews" | "store" | "site"
 /** Sections with their URL slug (?seccion=pedidos), so reloads and shared links keep the place. */
 /** Sections a role cannot use are hidden (permission); the backend rejects their writes anyway. */
 export const SECTIONS: { id: AdminSection; slug: string; label: string; title: string; subtitle: string; icon: Icon; group: "sales" | "catalog" | "admin"; permission?: Permission }[] = [
@@ -22,6 +22,7 @@ export const SECTIONS: { id: AdminSection; slug: string; label: string; title: s
   { id: "coupons", slug: "cupones", label: "Cupones", title: "Cupones", subtitle: "Descuentos y su uso real", icon: Ticket, group: "catalog" },
   { id: "reviews", slug: "opiniones", label: "Opiniones", title: "Opiniones y preguntas", subtitle: "Lo que dicen y preguntan tus clientes", icon: ChatsCircle, group: "catalog" },
   { id: "store", slug: "tienda", label: "Tienda", title: "Ajustes de la tienda", subtitle: "Pagos, envíos, conversaciones y página de producto", icon: Storefront, group: "admin", permission: "SETTINGS_MANAGE" },
+  { id: "site", slug: "sitio", label: "Sitio", title: "Sitio", subtitle: "Documentos legales y páginas de error de la tienda", icon: Browser, group: "admin", permission: "SETTINGS_MANAGE" },
   { id: "users", slug: "usuarios", label: "Usuarios", title: "Usuarios", subtitle: "Quién entra al panel y qué puede hacer", icon: UsersThree, group: "admin", permission: "USERS_MANAGE" },
   { id: "settings", slug: "impuestos", label: "Impuestos", title: "Impuestos", subtitle: "Tasas de IVA que usan tus productos", icon: Percent, group: "admin", permission: "TAXES_MANAGE" },
 ]

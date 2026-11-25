@@ -68,11 +68,6 @@ public class AdminSettingsResource {
     }
     @GET @Path("/store") public Map<String, Object> store() { return settings.profile().toMap(); }
     @PUT @Path("/store") public Map<String, Object> store(Map<String, Object> in) { return settings.save(StoreProfile.fromMap(require(in)), actor()).toMap(); }
-    @GET @Path("/legal") public Map<String, Object> legal() { return settings.legal().toMap(); }
-    @PUT @Path("/legal") public Map<String, Object> legal(Map<String, Object> in) { return settings.save(LegalPages.fromMap(require(in)), actor()).toMap(); }
-    /** Uploads a PDF for the legal pages under ?name=; the same name replaces it. Attach it to a page with PUT /legal. */
-    @POST @Path("/legal/files") @Consumes({"application/pdf", MediaType.APPLICATION_OCTET_STREAM})
-    public Map<String, String> legalFile(@QueryParam("name") String name, byte[] bytes) { settings.storeLegalFile(name, bytes); return Map.of("file", name); }
     @PUT @Path("/conversations") public Map<String, Object> conversations(Map<String, Object> in) { return settings.save(Conversations.fromMap(require(in)), actor()).toMap(); }
     @PUT @Path("/shipping") public Map<String, Object> shipping(Map<String, Object> in) { return settings.save(Shipping.fromMap(require(in)), actor()).toMap(); }
     @PUT @Path("/checkout") public Map<String, Object> checkout(Map<String, Object> in) {

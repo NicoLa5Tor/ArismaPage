@@ -11,7 +11,8 @@ export interface CheckoutPort {
   /** email lets the store check a coupon's limit per customer. */
   quote(lines: CartRequest, delivery: Delivery | null, coupon?: string, email?: string): Promise<Quote>
   /** Needs the store session (the cookie names the buyer). */
-  place(lines: CartRequest, order: AccountOrder, coupon?: string): Promise<Placed>
+  /** acceptsTerms: the buyer ticked the box; the store records which version of each policy they accepted. */
+  place(lines: CartRequest, order: AccountOrder, coupon: string | undefined, acceptsTerms: boolean): Promise<Placed>
   order(access: OrderAccess): Promise<OrderView>
   /** Starts a payment with the store's active method. */
   startPayment(access: OrderAccess): Promise<Instruction>

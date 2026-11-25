@@ -40,7 +40,8 @@ function smtpSink() {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve({ port: server.address().port, received, close: () => server.close() })))
 }
 const ok = (cond, msg) => { if (!cond) throw new Error('FALLA: ' + msg); console.log('ok  ' + msg) }
-const orders = [], saved = {}, twins = []
+const orders = [], saved = {}, twins = [], versions = []
+let erasable = ''
 const hashPassword = (pass) => { const salt = crypto.randomBytes(16); return `pbkdf2-sha256$600000$${salt.toString('hex')}$${crypto.pbkdf2Sync(pass, salt, 600000, 32, 'sha256').toString('hex')}` }
 
 async function call(method, path, { body, cookie, csrf, form } = {}) {
@@ -63,7 +64,7 @@ async function outboxLink(A, kind, path) {
 async function main() {
   await db.connect()
   await db.query("INSERT INTO admin_user(id,email,name,role,password_hash) VALUES($1,$2,'Smoke tienda','admin',$3)", [adminId, adminEmail, adminHash])
-  for (const k of ['payments', 'conversations', 'mail', 'mail_secret', 'checkout']) saved[k] = (await db.query('SELECT value FROM store_setting WHERE key=$1', [k])).rows[0]
+  for (const k of ['payments', 'conversations', 'mail', 'mail_secret', 'checkout', 'legal', 'error_pages']) saved[k] = (await db.query('SELECT value FROM store_setting WHERE key=$1', [k])).rows[0]
   saved.credentials = (await db.query('SELECT * FROM payment_credential')).rows
   // start from a store with no payment method set up; what was there comes back at the end
   await db.query('DELETE FROM payment_credential'); await db.query("DELETE FROM store_setting WHERE key='payments'")
@@ -87,10 +88,44 @@ async function main() {
   ok(options.json.payment && options.json.payment.code === 'payu' && options.json.payment.test, 'el checkout ofrece un solo medio, en pruebas')
   await call('PUT', '/admin/settings/conversations', { ...A, body: { reviews: true, questions: true, manualModeration: true, buyersOnly: false, customerReplies: false } })
 
+  // the site: legal documents with versions, and the store's own error pages
+  const legal = await call('GET', '/admin/site/legal', A)
+  ok(legal.status === 200 && legal.json.map(d => d.kind).join() === 'terms,privacy,returns,shipping', 'el panel lista los cuatro documentos legales')
+  const shippingDoc = legal.json.find(d => d.kind === 'shipping')
+  let shippingPublished = false
+  if (!shippingDoc.published && shippingDoc.draft.blocks.length === 0) {
+    const drafted = await call('POST', '/admin/site/legal/shipping/draft', A)
+    const text = JSON.stringify(drafted.json.find(d => d.kind === 'shipping').draft)
+    ok(drafted.status === 200 && text.includes('Así entregamos'), 'el borrador de envíos sale de las reglas de la tienda')
+    ok((await call('POST', '/admin/site/legal/shipping/draft', A)).status === 409, 'el borrador sugerido nunca pisa lo escrito')
+    ok((await call('POST', '/admin/site/legal/shipping/publish', { cookie: A.cookie })).status === 401, 'publicar exige el token CSRF')
+    const pub = await call('POST', '/admin/site/legal/shipping/publish', A)
+    const after = pub.json.find(d => d.kind === 'shipping')
+    ok(pub.status === 200 && after.published && after.published.version === 1 && !after.changed, 'la política de envíos se publica como versión 1')
+    versions.push(...(await db.query("SELECT id FROM legal_version WHERE kind='shipping'")).rows.map(r => r.id))
+    ok((await call('POST', '/admin/site/legal/shipping/publish', A)).status === 409, 'sin cambios no hay versión nueva')
+    const page = await call('GET', '/public/store/legal/shipping')
+    ok(page.status === 200 && page.json.version === 1 && page.json.blocks.length > 0, 'la tienda muestra la versión publicada')
+    ok((await call('GET', '/public/store')).json.legal.shipping === true, 'el perfil público dice que está publicada')
+    shippingPublished = true
+  }
+  ok((await call('GET', '/public/store/legal/cookies')).status === 404, 'un documento que no existe da 404')
+  ok((await call('GET', '/public/store/error-pages/not_found')).status === 404 || saved.error_pages, 'sin página propia la tienda usa la suya')
+  ok((await call('PUT', '/admin/site/error-pages/not_found', { ...A, body: { enabled: true, html: '', css: '', js: '' } })).status === 400, 'una página de error activa necesita HTML')
+  const errorPage = { enabled: true, html: '<h1>Uy ' + tag + '</h1>', css: 'h1{color:red}', js: 'console.log(tienda.ruta)' }
+  ok((await call('PUT', '/admin/site/error-pages/not_found', { ...A, body: errorPage })).status === 200, 'la tienda guarda su página 404')
+  const live = await call('GET', '/public/store/error-pages/not_found')
+  ok(live.status === 200 && live.json.html.includes(tag) && live.json.js.includes('tienda.ruta'), 'la tienda sirve su página 404 con su código')
+  await call('PUT', '/admin/site/error-pages/not_found', { ...A, body: { ...errorPage, enabled: false } })
+  ok((await call('GET', '/public/store/error-pages/not_found')).status === 404, 'apagada, la tienda vuelve a su página')
+
   // shopper account
-  const reg = await call('POST', '/shop/session/register', { body: { name: 'Prueba Automática', email: shopperEmail, password: 'clave-de-prueba-' + tag } })
+  ok((await call('POST', '/shop/session/register', { body: { name: 'Prueba Automática', email: shopperEmail, password: 'clave-de-prueba-' + tag } })).status === 400, 'sin autorizar el tratamiento de datos no se crea la cuenta')
+  const reg = await call('POST', '/shop/session/register', { body: { name: 'Prueba Automática', email: shopperEmail, password: 'clave-de-prueba-' + tag, acceptsPrivacy: true } })
   ok(reg.status === 200 && reg.cookie.includes('norpress_cliente='), 'se crea la cuenta de cliente')
   let S = { cookie: reg.cookie, csrf: reg.json.csrf }
+  const signedUp = (await db.query("SELECT v.kind, a.user_agent FROM legal_acceptance a JOIN legal_version v ON v.id=a.version_id WHERE a.account_id=$1 AND a.context='signup' ORDER BY v.kind", [reg.json.shopper.id])).rows
+  ok(signedUp.map(r => r.kind).join() === 'privacy,terms', 'al registrarse queda la prueba de que aceptó términos y datos')
   ok((await call('POST', '/shop/account/verification', S)).status === 200, 'se pide el enlace para confirmar el correo')
   const verify = await outboxLink(A, 'verificar_correo', '/cuenta/verificar')
   ok(verify && (await call('POST', '/shop/session/verify', { body: { token: verify } })).status === 200, 'el enlace de la bandeja confirma el correo')
@@ -157,6 +192,9 @@ async function main() {
   const placed = await call('POST', '/public/checkout/orders', { cookie: S.cookie, body: { lines, contact, pickup: false, addressId: saved1.json.id, note: '', coupon: couponCode, acceptsTerms: true } })
   ok(placed.status === 201 && placed.json.test, 'se crea el pedido de prueba ' + (placed.json && placed.json.number))
   orders.push(placed.json.number)
+  const accepted = (await db.query("SELECT v.kind FROM legal_acceptance a JOIN legal_version v ON v.id=a.version_id JOIN sales_order o ON o.id=a.order_id WHERE o.number=$1 AND a.context='checkout' ORDER BY v.kind", [placed.json.number])).rows.map(r => r.kind)
+  ok(accepted.includes('terms') && accepted.includes('privacy') && (!shippingPublished || accepted.includes('shipping')), 'el pedido guarda qué versión de cada política aceptó: ' + accepted.join(', '))
+  ok((await call('POST', '/public/checkout/orders', { cookie: S.cookie, body: { lines, contact, pickup: true, acceptsTerms: false } })).status === 400, 'sin aceptar las políticas no se compra')
   const shipTo = (await db.query('SELECT shipping, billing FROM sales_order WHERE number=$1', [placed.json.number])).rows[0]
   ok(shipTo.shipping.neighborhood === 'Chapinero' && shipTo.shipping.instructions === 'Dejar en recepción' && shipTo.shipping.address_2 === 'Oficina 403' && shipTo.shipping.first_name === 'Ana', 'el pedido lleva barrio, indicaciones y quién recibe')
   ok(shipTo.billing.email === shopperEmail && shipTo.billing.id === '1020304050', 'el pedido lleva el correo de la cuenta y el documento')
@@ -333,6 +371,23 @@ async function main() {
   ok((await call('GET', `/shop/orders/${placed.json.number}/cancel`, S)).json.canCancel === false, 'ni se le ofrece')
   ok((await call('POST', `/admin/orders/${row.id}/status`, { ...A, body: { status: 'cancelled' } })).status === 409, 'ni la tienda lo cancela desde el panel')
   ok((await call('POST', `/admin/orders/${o4.id}/status`, { ...A, body: { status: 'refunded' } })).status === 400, 'reembolsado no se marca a mano')
+  // the shopper's data (Ley 1581): a copy of it, and erasing the account
+  const exported = await call('GET', '/shop/account/export', S)
+  ok(exported.status === 200 && exported.json.account.email === shopperEmail && exported.json.orders.length >= 1 && exported.json.acceptances.length >= 2, 'el cliente descarga sus datos, con sus pedidos y lo que aceptó')
+  const erasePending = await call('POST', '/shop/account/erase', { ...S, body: { password: 'otra-clave-' + tag } })
+  ok(erasePending.status === 409 && erasePending.json.error.includes('#'), 'con un pedido en camino la cuenta no se elimina: ' + (erasePending.json && erasePending.json.error))
+  const otherEmail = 'smoke-borrar-' + tag + '@tienda.test'
+  erasable = otherEmail
+  const other = await call('POST', '/shop/session/register', { body: { name: 'Cuenta Para Borrar', email: otherEmail, password: 'clave-de-prueba-' + tag, acceptsPrivacy: true } })
+  const O = { cookie: other.cookie, csrf: other.json.csrf }
+  await call('POST', '/shop/account/addresses', { ...O, body: newAddress })
+  ok((await call('POST', '/shop/account/erase', { ...O, body: { password: 'otra' } })).status === 401, 'eliminar la cuenta exige la contraseña')
+  ok((await call('POST', '/shop/account/erase', { cookie: O.cookie, body: { password: 'clave-de-prueba-' + tag } })).status === 401, 'eliminar la cuenta exige el token CSRF')
+  const erased = await call('POST', '/shop/account/erase', { ...O, body: { password: 'clave-de-prueba-' + tag } })
+  ok(erased.status === 200, 'el cliente elimina su cuenta')
+  ok((await db.query('SELECT count(*)::int AS n FROM customer_account WHERE lower(email)=lower($1)', [otherEmail])).rows[0].n === 0, 'la cuenta ya no existe')
+  ok((await db.query('SELECT count(*)::int AS n FROM customer WHERE lower(email)=lower($1)', [otherEmail])).rows[0].n === 0, 'su correo ya no está en los clientes')
+  ok((await call('GET', '/shop/session', O)).status === 401, 'su sesión se cerró')
   console.log('\nTODO BIEN')
 }
 
@@ -343,18 +398,22 @@ async function cleanup() {
       if (!o) continue
       for (const l of (await db.query('SELECT product_id, stock_reduced FROM order_line WHERE order_id=$1 AND stock_reduced>0', [o.id])).rows) await db.query('UPDATE product SET stock_quantity=stock_quantity+$1 WHERE id=$2', [l.stock_reduced, l.product_id])
       await db.query('DELETE FROM inventory_adjustment WHERE order_line_id IN (SELECT id FROM order_line WHERE order_id=$1)', [o.id])
+      await db.query('DELETE FROM legal_acceptance WHERE order_id=$1', [o.id])
       await db.query('DELETE FROM sales_order WHERE id=$1', [o.id])
     }
     await db.query("UPDATE product SET stock_status='instock' WHERE manage_stock AND stock_quantity>0 AND stock_status='outofstock'")
     const acc = (await db.query('SELECT id, customer_id FROM customer_account WHERE email=$1', [shopperEmail])).rows[0]
     if (acc) {
       await db.query('DELETE FROM product_post WHERE account_id=$1', [acc.id])
+      await db.query('DELETE FROM legal_acceptance WHERE account_id=$1', [acc.id])
       await db.query('DELETE FROM customer_account WHERE id=$1', [acc.id])
       await db.query('DELETE FROM customer WHERE id=$1 AND NOT EXISTS (SELECT 1 FROM sales_order WHERE customer_id=$1)', [acc.customer_id])
     }
-    await db.query('DELETE FROM mail_outbox WHERE recipient=$1', [shopperEmail])
+    await db.query('DELETE FROM mail_outbox WHERE recipient=$1 OR recipient=$2', [shopperEmail, erasable])
+    await db.query("DELETE FROM customer WHERE first_name='Cuenta eliminada' AND email IS NULL AND NOT EXISTS (SELECT 1 FROM sales_order WHERE customer_id=customer.id) AND NOT EXISTS (SELECT 1 FROM customer_account WHERE customer_id=customer.id) AND created_at > now() - interval '1 hour'")
+    if (versions.length) { await db.query('DELETE FROM legal_acceptance WHERE version_id = ANY($1::uuid[])', [versions]); await db.query('DELETE FROM legal_version WHERE id = ANY($1::uuid[])', [versions]) }
     await db.query('DELETE FROM coupon WHERE code=$1', [couponCode])
-    for (const k of ['payments', 'conversations', 'mail', 'mail_secret', 'checkout']) { if (saved[k]) await db.query('UPDATE store_setting SET value=$2, updated_by=NULL WHERE key=$1', [k, saved[k].value]); else await db.query('DELETE FROM store_setting WHERE key=$1', [k]) }
+    for (const k of ['payments', 'conversations', 'mail', 'mail_secret', 'checkout', 'legal', 'error_pages']) { if (saved[k]) await db.query('UPDATE store_setting SET value=$2, updated_by=NULL WHERE key=$1', [k, saved[k].value]); else await db.query('DELETE FROM store_setting WHERE key=$1', [k]) }
     await db.query('DELETE FROM payment_credential')
     for (const c of saved.credentials || []) await db.query('INSERT INTO payment_credential(code,environment,public_config,secret_cipher) VALUES($1,$2,$3,$4)', [c.code, c.environment, c.public_config, c.secret_cipher])
     for (const id of twins) await db.query('DELETE FROM admin_user WHERE id=$1', [id])

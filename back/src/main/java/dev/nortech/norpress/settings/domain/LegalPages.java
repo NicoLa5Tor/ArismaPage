@@ -3,30 +3,34 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * The store's legal pages, written by the store itself: the terms of use and the personal data policy. Each page is plain
- * text in blocks (headings, paragraphs and lists, never HTML) plus the documents it attaches, such as the signed PDF of the
- * data policy. A page with no blocks and no documents is not published.
+ * The store's legal pages, written by the store itself: terms of use, the personal data policy, the returns and refunds
+ * policy and the shipping policy. Each page is plain text in blocks (headings, paragraphs and lists, never HTML) plus the
+ * documents it attaches, such as the signed PDF of the data policy. These are the drafts the panel edits; what shoppers
+ * read and accept are the published versions (LegalVersion).
  */
-public record LegalPages(LegalPage terms, LegalPage privacy) {
+public record LegalPages(Map<String, LegalPage> pages) {
     public static final String KEY = "legal";
-    public static final LegalPages EMPTY = new LegalPages(LegalPage.EMPTY, LegalPage.EMPTY);
+    /** Every kind, in the order the store lists them. */
+    public static final List<String> KINDS = List.of("terms", "privacy", "returns", "shipping");
+    public static final LegalPages EMPTY = new LegalPages(Map.of());
 
     public LegalPages {
-        terms = terms == null ? LegalPage.EMPTY : terms;
-        privacy = privacy == null ? LegalPage.EMPTY : privacy;
+        var all = new LinkedHashMap<String, LegalPage>();
+        for (String kind : KINDS) all.put(kind, pages == null || pages.get(kind) == null ? LegalPage.EMPTY : pages.get(kind));
+        pages = Collections.unmodifiableMap(all);
     }
+    public static boolean known(String kind) { return kind != null && KINDS.contains(kind); }
+    public LegalPage terms() { return pages.get("terms"); }
+    public LegalPage privacy() { return pages.get("privacy"); }
 
-    /** The page by the name fronts use: "terms" or "privacy". */
-    public Optional<LegalPage> page(String kind) {
-        return switch (kind == null ? "" : kind) {
-            case "terms" -> Optional.of(terms);
-            case "privacy" -> Optional.of(privacy);
-            default -> Optional.empty();
-        };
-    }
-    /** Whether a file name is attached to either page: only those are served. */
-    public boolean attaches(String file) {
-        return terms.documents().stream().anyMatch(d -> d.file().equals(file)) || privacy.documents().stream().anyMatch(d -> d.file().equals(file));
+    /** The page by the name fronts use; empty for an unknown name. */
+    public Optional<LegalPage> page(String kind) { return known(kind) ? Optional.of(pages.get(kind)) : Optional.empty(); }
+    /** The same pages with one of them replaced. */
+    public LegalPages with(String kind, LegalPage page) {
+        if (!known(kind)) throw new IllegalArgumentException("Esa página legal no existe");
+        var next = new LinkedHashMap<>(pages);
+        next.put(kind, page);
+        return new LegalPages(next);
     }
 
     /** heading is a section title, subheading a title inside a section; a list carries items instead of text. */
@@ -86,7 +90,7 @@ public record LegalPages(LegalPage terms, LegalPage privacy) {
             out.put("documents", documents.stream().map(Document::toMap).toList());
             return out;
         }
-        static LegalPage fromMap(Object o) {
+        public static LegalPage fromMap(Object o) {
             if (!(o instanceof Map<?, ?> m)) return EMPTY;
             List<Block> blocks = m.get("blocks") instanceof List<?> l ? l.stream().map(Block::fromMap).toList() : List.of();
             List<Document> documents = m.get("documents") instanceof List<?> l ? l.stream().map(Document::fromMap).toList() : List.of();
@@ -96,12 +100,13 @@ public record LegalPages(LegalPage terms, LegalPage privacy) {
 
     public static LegalPages fromMap(Map<String, Object> m) {
         if (m == null || m.isEmpty()) return EMPTY;
-        return new LegalPages(LegalPage.fromMap(m.get("terms")), LegalPage.fromMap(m.get("privacy")));
+        var pages = new LinkedHashMap<String, LegalPage>();
+        for (String kind : KINDS) pages.put(kind, LegalPage.fromMap(m.get(kind)));
+        return new LegalPages(pages);
     }
     public Map<String, Object> toMap() {
         var out = new LinkedHashMap<String, Object>();
-        out.put("terms", terms.toMap());
-        out.put("privacy", privacy.toMap());
+        pages.forEach((kind, page) -> out.put(kind, page.toMap()));
         return out;
     }
 

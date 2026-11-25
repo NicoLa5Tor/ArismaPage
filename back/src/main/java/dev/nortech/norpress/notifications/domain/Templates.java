@@ -89,7 +89,8 @@ public final class Templates {
         }
         if (action != null && link != null) html.append("<p style=\"margin:24px 0\"><a href=\"").append(escape(link)).append("\" style=\"display:inline-block;background:").append(brand.color()).append(";color:#ffffff;text-decoration:none;font-weight:600;padding:16px 32px;border-radius:999px\">").append(escape(action)).append("</a></p>");
         if (footnote != null) html.append("<p style=\"margin:0;font-size:13px;line-height:20px;color:#78716c\">").append(escape(footnote)).append("</p>");
-        html.append("</td></tr></table><p style=\"margin:16px 0 0;font-size:12px;color:#78716c\">").append(escape(brand.signature())).append("</p></td></tr></table></body></html>");
+        html.append("</td></tr></table><p style=\"margin:16px 0 0;font-size:12px;color:#78716c\">").append(escape(brand.signature())).append("</p>")
+            .append(brand.legal().isEmpty() ? "" : "<p style=\"margin:4px 0 0;font-size:12px;color:#78716c\">" + escape(brand.legal()) + "</p>").append("</td></tr></table></body></html>");
         return new Message(kind, to, subject, text.toString(), html.toString());
     }
     static String escape(String value) {
