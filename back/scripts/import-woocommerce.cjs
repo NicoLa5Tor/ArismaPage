@@ -232,9 +232,19 @@ async function main() {
     return { product_id: productIds.get(text(im._product_id)) || null, sku: nullable(im._ywpi_product_sku) || skuByProduct.get(text(im._product_id)) || null, title: it.order_item_name, quantity: qty, unit_price: qty ? Math.round(subtotal / qty * 100) / 100 : 0, subtotal, total, tax }
   }
 
+  // A quote request is only a wish list. One whose quantities or amounts no column can hold (bots type absurd numbers)
+  // is left out and listed in the report, so the rest still reconciles. Orders are never left out.
+  const MAX_QTY = 2147483647, MAX_AMOUNT = 999999999999.99
+  const impossibleQuote = o => Math.abs(money((ometa.get(o.ID) || {})._order_total)) > MAX_AMOUNT || (items.get(o.ID) || []).some(i => {
+    const im = itemMeta.get(i.order_item_id) || {}
+    return Math.abs(money(im._qty)) > MAX_QTY || [im._line_subtotal, im._line_total, im._line_tax].some(v => Math.abs(money(v)) > MAX_AMOUNT)
+  })
+  const excludedQuotes = new Set()
+
   for (const o of orders) {
     const m = ometa.get(o.ID) || {}
     const isQuote = o.post_status === QUOTE_STATUS, fromQuote = isQuote || m._created_via === 'ywraq'
+    if (isQuote && impossibleQuote(o)) { excludedQuotes.add(o.ID); count('quote.excluded'); continue }
     await guarded(`order ${o.ID}`, async () => {
       const placed = gmt(o.post_date_gmt, o.post_date), customerId = customerFor(m), its = items.get(o.ID) || []
       let orderId = null, quoteId = null
@@ -293,7 +303,7 @@ async function main() {
   // ---------- Reconciliation (inside the transaction, before deciding to commit) ----------
   const src = {
     orders: orders.filter(o => o.post_status !== QUOTE_STATUS).length,
-    quotes: orders.filter(o => o.post_status === QUOTE_STATUS || (ometa.get(o.ID) || {})._created_via === 'ywraq').length,
+    quotes: orders.filter(o => !excludedQuotes.has(o.ID) && (o.post_status === QUOTE_STATUS || (ometa.get(o.ID) || {})._created_via === 'ywraq')).length,
     lines: orders.filter(o => o.post_status !== QUOTE_STATUS).reduce((s, o) => s + (items.get(o.ID) || []).filter(i => i.order_item_type === 'line_item').length, 0),
   }
   const tgt = (await db.query(`SELECT (SELECT count(*) FROM sales_order WHERE source_key LIKE 'wordpress:order:%')::int orders, (SELECT count(*) FROM quote_request WHERE source_key LIKE 'wordpress:quote:%')::int quotes, (SELECT count(*) FROM order_line WHERE source_key LIKE 'wordpress:order_item:%')::int lines`)).rows[0]
@@ -308,7 +318,7 @@ async function main() {
   if (unitMismatches) errors.push(`reconciliation units: ${unitMismatches} products differ`)
 
   await db.query(dry || errors.length ? 'ROLLBACK' : 'COMMIT')
-  console.log(JSON.stringify({ dryRun: dry, committed: !dry && !errors.length, stats, reconciliation: { source: src, target: tgt, salesByYear, productsWithSales: srcUnits.length, unitMismatches }, warnings: warnings.length > 40 ? [...warnings.slice(0, 40), `… ${warnings.length - 40} more`] : warnings, errors }, null, 2))
+  console.log(JSON.stringify({ dryRun: dry, committed: !dry && !errors.length, stats, excludedQuotes: [...excludedQuotes].map(id => `wordpress:quote:${id}: cantidades o montos imposibles`), reconciliation: { source: src, target: tgt, salesByYear, productsWithSales: srcUnits.length, unitMismatches }, warnings: warnings.length > 40 ? [...warnings.slice(0, 40), `… ${warnings.length - 40} more`] : warnings, errors }, null, 2))
   if (errors.length) process.exitCode = 1
   await wp.end()
 }
