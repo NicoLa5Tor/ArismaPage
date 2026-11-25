@@ -1,0 +1,7 @@
+target
+.quarkus
+node_modules
+scripts
+.env
+.env.*
+*.ps1

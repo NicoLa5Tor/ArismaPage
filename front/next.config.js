@@ -3,6 +3,8 @@ module.exports = {
   reactStrictMode: true,
   // Each client store run on this machine (front/start-store.ps1) builds into its own folder, next to Arisma's .next.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // The Docker image (Dockerfile) builds a self-contained server; local work keeps the usual `next start`.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // Local payment tests: Wompi refuses localhost as a return address, so stores are opened at <store>.localhost.
   allowedDevOrigins: ["arisma.localhost", "*.localhost"],
   // Photos are served as WebP at the width each screen needs (modules/shared/ui/optimized-image.ts) and cached for 30
