@@ -1,14 +1,16 @@
 import type { Metadata } from "next"
 import { httpStoreProfile } from "../../../modules/shared/adapters/http-store-profile"
+import { robotsFor } from "../../../modules/shared/domain/store-profile"
 import { cleanQuestion } from "../../../modules/storefront/domain/assistant"
 import { AssistantClient } from "./assistant-client"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { shortName } = await httpStoreProfile.load()
+  const profile = await httpStoreProfile.load()
+  const { shortName } = profile
   return {
     title: { absolute: `Pregúntale a ${shortName} | Buscador de juguetes educativos` },
     description: `Describe para quién es, su edad o qué quiere aprender y te mostramos los productos de ${shortName} que encajan. Cotiza por WhatsApp.`,
-    robots: { index: true, follow: true },
+    robots: robotsFor(profile, { index: true, follow: true }),
     alternates: { canonical: "/buscar" },
   }
 }

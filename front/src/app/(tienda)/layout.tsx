@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { httpStoreProfile } from "../../modules/shared/adapters/http-store-profile"
-import { siteUrl } from "../../modules/shared/domain/store-profile"
+import { robotsFor, siteUrl } from "../../modules/shared/domain/store-profile"
 import { StoreProviders } from "./store-providers"
 import { StoreFooter } from "../../modules/storefront/ui/store-footer"
 
@@ -13,6 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = `Compra en línea en ${profile.name}${profile.localCity ? `, ${profile.localCity}` : ""}. Envíos a toda Colombia.`
   return {
     metadataBase: new URL(siteUrl(profile)),
+    // pages that say nothing of their own follow the store's rule; the ones that do apply robotsFor themselves
+    robots: robotsFor(profile, { index: true, follow: true }),
     title: { template: `%s | ${profile.name}`, default: profile.name },
     description,
     openGraph: { siteName: profile.name, locale: "es_CO", type: "website", description },

@@ -89,6 +89,20 @@ export function minimumSentence(profile: Pick<StoreProfile, "shipping">): string
   return profile.shipping.minimumOrder > 0 ? `La compra mínima por la página es de ${pesos(profile.shipping.minimumOrder)}.` : ""
 }
 
+/**
+ * Search engines may index the store only at its own address: the site its profile gives, served at that same address
+ * (NORPRESS_PUBLIC_URL). A copy anywhere else (a beta, a test server) or a store whose address is not set stays out.
+ */
+export function indexable(profile: Pick<StoreProfile, "site">, publicUrl = process.env.NORPRESS_PUBLIC_URL): boolean {
+  if (!profile.site || !publicUrl) return false
+  try { return new URL(profile.site).origin === new URL(publicUrl).origin } catch { return false }
+}
+
+/** What a page asks of search engines, kept out of them wherever the store is not at its own address. */
+export function robotsFor(profile: Pick<StoreProfile, "site">, wanted: { index: boolean; follow: boolean }) {
+  return indexable(profile) ? wanted : { index: false, follow: false }
+}
+
 /** The store's public address without the final slash: its profile, else the server's NORPRESS_PUBLIC_URL. */
 export function siteUrl(profile: Pick<StoreProfile, "site">): string {
   const site = profile.site || process.env.NORPRESS_PUBLIC_URL || "http://localhost:8000"

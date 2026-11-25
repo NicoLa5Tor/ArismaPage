@@ -8,7 +8,7 @@ import { breadcrumbJsonLd, metaDescription, productJsonLd } from "../../../../mo
 import { QuestionsPanel, ReviewsPanel } from "../../../../modules/reviews/ui/conversations"
 import { ProductView } from "../../../../modules/storefront/ui/product/product-view"
 import { LEGAL_PATHS } from "../../../../modules/shared/domain/legal"
-import { siteUrl } from "../../../../modules/shared/domain/store-profile"
+import { robotsFor, siteUrl } from "../../../../modules/shared/domain/store-profile"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     metadataBase: new URL(siteUrl(profile)),
     title, description,
-    robots: { index: true, follow: true },
+    robots: robotsFor(profile, { index: true, follow: true }),
     alternates: { canonical: `/producto/${encodeURIComponent(detail.product.slug)}` },
     openGraph: { title, description, locale: "es_CO", type: "website", images: image ? [image] : undefined },
   }

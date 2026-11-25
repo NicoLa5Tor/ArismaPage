@@ -4,18 +4,20 @@ import { httpPublicCatalog } from "../../modules/storefront/adapters/http-public
 import { type CatalogCategory, type CatalogProduct, mainCategories } from "../../modules/storefront/domain/catalog"
 import { faqsFor, store } from "../../modules/storefront/domain/home"
 import { httpStoreProfile } from "../../modules/shared/adapters/http-store-profile"
-import type { StoreProfile } from "../../modules/shared/domain/store-profile"
+import { robotsFor, type StoreProfile } from "../../modules/shared/domain/store-profile"
 import { StorefrontHome } from "../../modules/storefront/ui/storefront-home"
 
 const description = "Rompecabezas, títeres, juegos de mesa y kits de robótica para familias y colegios. Cotiza por WhatsApp y recibe en toda Colombia."
 
-export const metadata: Metadata = {
-  metadataBase: new URL(store.site),
-  title: { absolute: "Arisma | Juguetes educativos y material didáctico en Colombia" },
-  description,
-  robots: { index: true, follow: true },
-  alternates: { canonical: "/" },
-  openGraph: { title: "Arisma | Juguetes educativos y material didáctico en Colombia", description, locale: "es_CO", type: "website", images: ["/scroll-world/historia-poster.jpg"] },
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(store.site),
+    title: { absolute: "Arisma | Juguetes educativos y material didáctico en Colombia" },
+    description,
+    robots: robotsFor(await httpStoreProfile.load(), { index: true, follow: true }),
+    alternates: { canonical: "/" },
+    openGraph: { title: "Arisma | Juguetes educativos y material didáctico en Colombia", description, locale: "es_CO", type: "website", images: ["/scroll-world/historia-poster.jpg"] },
+  }
 }
 
 const structuredData = (profile: StoreProfile) => [
