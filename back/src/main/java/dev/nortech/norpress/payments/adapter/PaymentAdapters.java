@@ -38,6 +38,10 @@ public final class PaymentAdapters {
             return Jdbc.with(db, c -> Jdbc.list(c, "SELECT a.reference, a.order_id, a.gateway, a.amount, a.sandbox, a.status FROM payment_attempt a JOIN sales_order o ON o.id=a.order_id"
                 + " WHERE a.gateway=? AND a.status IN ('started','pending') AND a.created_at>? AND o.status='pending' ORDER BY a.created_at DESC LIMIT ?", gateway, since, limit).stream().map(PostgresAttempts::read).toList());
         }
+        public java.util.Set<UUID> waiting(java.time.Instant since) {
+            return Jdbc.with(db, c -> Jdbc.list(c, "SELECT o.id FROM sales_order o WHERE o.status='pending' AND o.expires_at>? AND (SELECT a.status FROM payment_attempt a WHERE a.order_id=o.id ORDER BY a.created_at DESC LIMIT 1)='pending'", since)
+                .stream().map(r -> (UUID) r.get("id")).collect(java.util.stream.Collectors.toSet()));
+        }
         public Optional<Attempt> latest(UUID orderId) { return Jdbc.with(db, c -> Jdbc.one(c, SELECT + " WHERE order_id=? ORDER BY (status='approved') DESC, created_at DESC LIMIT 1", orderId).map(PostgresAttempts::read)); }
         public boolean approve(String reference, String externalId, String detail) {
             return Jdbc.with(db, c -> Jdbc.update(c, "UPDATE payment_attempt SET status='approved', external_id=?, detail=?, updated_at=now() WHERE reference=? AND status<>'approved'", externalId, detail, reference) > 0);

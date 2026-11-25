@@ -10,6 +10,17 @@ import { optimized } from "../../../shared/ui/optimized-image"
 
 const LAST = steps.length - 1
 
+/** Each card is pinned to the full box of `.how-cards`; let it take its own height for a moment to see if it fits. */
+function cardsFit(root: HTMLElement, cards: HTMLElement[]) {
+  const room = root.querySelector<HTMLElement>(".how-cards")!.clientHeight
+  return cards.every((card) => {
+    card.style.bottom = "auto"
+    const height = card.offsetHeight
+    card.style.removeProperty("bottom")
+    return height <= room + 1
+  })
+}
+
 // The section is four screens tall and its stage sticks: the page waits while the scroll walks the timeline. Each step
 // owns a third of that scroll, so a card is always shown whole; the rail fills up to the node of the step on screen.
 function build(root: HTMLElement, { desktop, short }: Scene) {
@@ -25,6 +36,8 @@ function build(root: HTMLElement, { desktop, short }: Scene) {
     nodes.forEach((node, index) => { node.dataset.state = index === step ? "active" : index < step ? "past" : "next"; node.setAttribute("aria-current", index === step ? "step" : "false") })
   }
   root.dataset.live = "true"
+  // a step that does not fit whole in the pinned stage would be cut, so a screen that low keeps the plain list too
+  if (!cardsFit(root, cards)) { delete root.dataset.live; return }
   show(0)
 
   const walk = ScrollTrigger.create({

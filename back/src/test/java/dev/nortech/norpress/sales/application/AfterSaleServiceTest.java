@@ -68,6 +68,8 @@ class AfterSaleServiceTest {
         final List<String> sent = new ArrayList<>();
         @Override public void orderCancelled(String to, String name, String number, BigDecimal refund, String how, String link) { sent.add("cancelado" + (refund == null ? "" : ":" + refund.toPlainString())); }
         @Override public void refundCompleted(String to, String name, String number, BigDecimal amount, String how, String link) { sent.add("devuelto:" + amount.toPlainString()); }
+        final List<String> alerts = new ArrayList<>();
+        @Override public void storeAlert(String subject, String text, java.util.UUID orderId) { alerts.add(subject); }
     }
     static class Changes implements Event<AfterSaleChanged> {
         int fired;

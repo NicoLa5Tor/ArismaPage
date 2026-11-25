@@ -36,7 +36,10 @@ public class FulfillmentService {
     public void move(UUID orderId, FulfillmentStatus next, Shipment.Details details, String note, UUID actor) { move(orderId, next, details, null, note, actor); }
 
     @Transactional
-    public void move(UUID orderId, FulfillmentStatus next, Shipment.Details details, Dispatch dispatch, String note, UUID actor) {
+    public void move(UUID orderId, FulfillmentStatus next, Shipment.Details details, Dispatch dispatch, String note, UUID actor) { move(orderId, next, details, dispatch, note, actor, true); }
+
+    /** tell: whether the shopper gets the email of this step (old orders closed in bulk do not). */
+    private void move(UUID orderId, FulfillmentStatus next, Shipment.Details details, Dispatch dispatch, String note, UUID actor, boolean tell) {
         var locked = shipments.lock(orderId).orElseThrow(() -> new NotFound("Pedido no encontrado"));
         var before = locked.shipment();
         var given = details == null ? Shipment.Details.none() : details;
@@ -56,7 +59,7 @@ public class FulfillmentService {
         if (next == FulfillmentStatus.SHIPPED && before.method() == DeliveryMethod.CARRIER) shipments.setCarrier(after.id(), carrierCode, dispatch == null || dispatch.follow());
         shipments.recordEvent(after.id(), before.status(), next, actor, describe(after, note));
         if (next == FulfillmentStatus.DELIVERED) orders.completeOnDelivery(orderId, actor);
-        moved.fire(new ShipmentMoved(orderId, next, after.carrier(), after.trackingCode()));
+        moved.fire(new ShipmentMoved(orderId, next, after.carrier(), after.trackingCode(), after.method() == DeliveryMethod.PICKUP, tell));
     }
     @Transactional
     public void reroute(UUID orderId, DeliveryMethod method, Shipment.Details details, UUID actor) {
@@ -67,12 +70,13 @@ public class FulfillmentService {
         if (before.method() != after.method()) shipments.recordEvent(after.id(), before.status(), after.status(), actor, "Método cambiado a " + label(after.method()));
     }
     /** Each order in its own transaction so one problem does not stop the rest. */
-    public BulkResult moveAll(List<UUID> orderIds, FulfillmentStatus next, String note, UUID actor) {
+    public BulkResult moveAll(List<UUID> orderIds, FulfillmentStatus next, String note, UUID actor) { return moveEach(orderIds, next, note, actor, true); }
+    private BulkResult moveEach(List<UUID> orderIds, FulfillmentStatus next, String note, UUID actor, boolean tell) {
         if (orderIds == null || orderIds.isEmpty() || orderIds.size() > MAX_BULK || orderIds.stream().anyMatch(Objects::isNull)) throw new IllegalArgumentException("Selecciona entre 1 y " + MAX_BULK + " pedidos");
         if (next == null) throw new IllegalArgumentException("Indica el nuevo estado de entrega");
         int updated = 0; var failed = new ArrayList<Failure>();
         for (UUID id : new LinkedHashSet<>(orderIds)) {
-            try { self.moveAlone(id, next, note, actor); updated++; }
+            try { if (tell) self.moveAlone(id, next, note, actor); else self.moveQuietly(id, next, note, actor); updated++; }
             catch (IllegalArgumentException | NotFound e) { failed.add(new Failure(id, e.getMessage())); }
         }
         return new BulkResult(updated, failed);
@@ -80,6 +84,9 @@ public class FulfillmentService {
     /** Public only so the call goes through the CDI proxy and opens its own transaction; use moveAll. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void moveAlone(UUID orderId, FulfillmentStatus next, String note, UUID actor) { move(orderId, next, Shipment.Details.none(), note, actor); }
+    /** Like moveAlone, without telling the shopper: for orders of years ago closed in bulk. */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void moveQuietly(UUID orderId, FulfillmentStatus next, String note, UUID actor) { move(orderId, next, Shipment.Details.none(), null, note, actor, false); }
 
     /** Where the shopper follows a guide of that carrier: its link with the number, or its page; null when unknown. */
     public String trackingLink(String carrierName, String number) { return carriers.match(carrierName).map(c -> c.linkFor(number)).orElse(null); }
@@ -98,11 +105,23 @@ public class FulfillmentService {
         if (days < 30) throw new IllegalArgumentException("Solo se cierran en lote pedidos de hace más de 30 días");
         var ids = shipments.staleOrderIds(days);
         if (ids.isEmpty()) return new BulkResult(0, List.of());
-        return moveAll(ids.subList(0, Math.min(ids.size(), MAX_BULK)), FulfillmentStatus.DELIVERED, "Cierre en lote de pedidos de hace más de " + days + " días", actor);
+        // nobody waits for an email about an order of months ago
+        return moveEach(ids.subList(0, Math.min(ids.size(), MAX_BULK)), FulfillmentStatus.DELIVERED, "Cierre en lote de pedidos de hace más de " + days + " días", actor, false);
     }
 
-    /** Sales reacts first; the delivery follows: cancelled orders stop, orders completed by hand count as delivered. */
+    /**
+     * Sales reacts first; the delivery follows: cancelled orders stop, orders completed by hand count as delivered, and a
+     * cancelled order that comes back (its payment arrived late) is to prepare again.
+     */
     void onOrderStatus(@Observes OrderStatusChanged event) {
+        if (event.from() == OrderStatus.CANCELLED && event.to() == OrderStatus.PROCESSING) {
+            shipments.lock(event.orderId()).filter(l -> l.shipment().status() == FulfillmentStatus.CANCELLED).ifPresent(locked -> {
+                var s = locked.shipment();
+                shipments.save(new Shipment(s.id(), s.orderId(), s.method(), FulfillmentStatus.PENDING, s.carrier(), s.trackingCode(), s.courierUserId(), s.courierName(), s.recipientName(), s.failureReason(), null, null, null), event.actor());
+                shipments.recordEvent(s.id(), FulfillmentStatus.CANCELLED, FulfillmentStatus.PENDING, event.actor(), "Pedido reactivado: hay que prepararlo");
+            });
+            return;
+        }
         boolean stops = event.to() == OrderStatus.CANCELLED || event.to() == OrderStatus.FAILED || event.to() == OrderStatus.REFUNDED;
         if (!stops && event.to() != OrderStatus.COMPLETED) return;
         shipments.lock(event.orderId()).ifPresent(locked -> {

@@ -36,6 +36,10 @@ public class PostgresInventory implements InventoryQueries, StockLedger {
                 UUID.randomUUID(),productId,after==null?null:before,after,quantity,reason,actor,orderLineId);
         });
     }
+    public boolean canTake(UUID productId, int quantity) {
+        return Jdbc.with(db,c -> Jdbc.one(c,"SELECT stock_quantity,manage_stock,backorders FROM product WHERE id=? FOR UPDATE",productId).map(p ->
+            !Boolean.TRUE.equals(p.get("manageStock")) || !"no".equals(p.get("backorders")) || (p.get("stockQuantity")!=null && (Integer)p.get("stockQuantity")>=quantity)).orElse(false));
+    }
     public int takeForSale(UUID productId, int quantity, UUID orderLineId, String reason) {
         if(quantity<=0) throw new IllegalArgumentException("La cantidad debe ser positiva");
         return Jdbc.with(db,c -> {

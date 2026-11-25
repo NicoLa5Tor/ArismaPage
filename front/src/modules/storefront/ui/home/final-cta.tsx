@@ -2,16 +2,12 @@
 
 import Link from "next/link"
 import gsap from "gsap"
-import { ArrowRight, Clock, EnvelopeSimple, FacebookLogo, InstagramLogo, MapPin, Phone, WhatsappLogo, YoutubeLogo } from "@phosphor-icons/react"
+import { ArrowRight, WhatsappLogo } from "@phosphor-icons/react"
 import { type CatalogCategory } from "../../domain/catalog"
-import { store } from "../../domain/home"
 import { categoryIcon } from "../catalog/category-icons"
 import { Marquee } from "./marquee"
 import { type Scene, useScene } from "./scene"
-import { useStoreProfile, useWhatsapp } from "../../../shared/ui/store-profile"
-import { legalHref } from "../../../shared/domain/store-profile"
-import { LEGAL_KINDS, LEGAL_LABELS, type LegalKind } from "../../../shared/domain/legal"
-import { optimized } from "../../../shared/ui/optimized-image"
+import { useWhatsapp } from "../../../shared/ui/store-profile"
 
 // The brand name rises letter by letter as the page ends; on desktop the main button leans towards the cursor.
 function build(root: HTMLElement, { desktop }: Scene) {
@@ -53,54 +49,4 @@ export function FinalCta({ categories }: { categories: CatalogCategory[] }) {
       <p className="wordmark" aria-hidden="true">{"arisma".split("").map((letter, index) => <span key={index}>{letter}</span>)}</p>
     </section>
   )
-}
-
-export function SiteFooter() {
-  const whatsappUrl = useWhatsapp()
-  const profile = useStoreProfile()
-  return (
-    <footer className="site-footer">
-      <div className="home-inner site-footer-grid">
-        <div className="site-footer-brand">
-          <img {...optimized("/brand/logo-arisma-2023.jpg", { sizes: "120px", width: 120 })} alt="Arisma" width={120} height={48} loading="lazy" />
-          <p>Ayudamos a padres y maestros a formar generaciones de niños increíbles desde {store.since}.</p>
-          <ul className="site-footer-social">
-            <li><a href={store.instagram} target="_blank" rel="noopener noreferrer" aria-label="Arisma en Instagram"><InstagramLogo size={24} aria-hidden="true" /></a></li>
-            <li><a href={store.facebook} target="_blank" rel="noopener noreferrer" aria-label="Arisma en Facebook"><FacebookLogo size={24} aria-hidden="true" /></a></li>
-            <li><a href={store.youtube} target="_blank" rel="noopener noreferrer" aria-label="Arisma en YouTube"><YoutubeLogo size={24} aria-hidden="true" /></a></li>
-          </ul>
-        </div>
-        {(profile.pickupLine || profile.hours.length > 0) && <div>
-          <h2>Tienda</h2>
-          <ul>
-            {profile.pickupLine && <li><MapPin size={18} aria-hidden="true" /> <span>{profile.pickupLine}</span></li>}
-            {profile.hours.length > 0 && <li><Clock size={18} aria-hidden="true" /> <span>{profile.hours.map((h, i) => <span key={h}>{i > 0 && <br />}{h}</span>)}</span></li>}
-          </ul>
-        </div>}
-        <div>
-          <h2>Contacto</h2>
-          <ul>
-            {profile.phone && <li><Phone size={18} aria-hidden="true" /> <a href={`tel:${profile.phone.replace(/[^\d+]/g, "")}`}>{profile.phone}</a></li>}
-            {profile.whatsapp && <li><WhatsappLogo size={18} aria-hidden="true" /> <a href={whatsappUrl("Hola, quiero información sobre sus productos")} target="_blank" rel="noopener noreferrer">{profile.whatsappLabel}</a></li>}
-            {profile.email && <li><EnvelopeSimple size={18} aria-hidden="true" /> <a href={`mailto:${profile.email}`}>{profile.email}</a></li>}
-          </ul>
-        </div>
-        <nav aria-label="Enlaces del sitio">
-          <h2>Explora</h2>
-          <ul>
-            <li><Link href="/productos">Productos</Link></li>
-            <li><Link href="/buscar">Pregúntale a Arisma</Link></li>
-            {LEGAL_KINDS.map((kind) => <LegalLink key={kind} kind={kind}>{LEGAL_LABELS[kind]}</LegalLink>)}
-          </ul>
-        </nav>
-      </div>
-    </footer>
-  )
-}
-
-/** The store's own legal page when it wrote one; the address in its profile otherwise, in a new tab. */
-function LegalLink({ kind, children }: { kind: LegalKind; children: string }) {
-  const href = legalHref(useStoreProfile(), kind)
-  if (!href) return null
-  return <li>{href.startsWith("/") ? <Link href={href}>{children}</Link> : <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>}</li>
 }

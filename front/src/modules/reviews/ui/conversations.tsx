@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useCallback, useEffect, useState, type FormEvent } from "react"
-import { ChatCircleDots, CheckCircle, CircleNotch, SealCheck, Star, Storefront } from "@phosphor-icons/react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react"
+import gsap from "gsap"
+import { ChatCircleDots, CheckCircle, CircleNotch, PencilSimpleLine, SealCheck, Star, Storefront } from "@phosphor-icons/react"
 import { loginUrl } from "../../account/domain/account"
 import { useAccount } from "../../account/ui/account-context"
 import { usePort } from "../../shared/ui/ports"
@@ -11,6 +12,7 @@ import type { PostsPort } from "../application/posts-port"
 import { LIMITS, type Post, type PostKind, type PostList, bodyError, distribution, formatDate, ratingWords } from "../domain/posts"
 import { useStoreProfile } from "../../shared/ui/store-profile"
 import { legalHref } from "../../shared/domain/store-profile"
+import { useInfoPanel } from "../../shared/ui/info-panel"
 
 const usePosts = () => usePort<PostsPort>("posts")
 
@@ -105,7 +107,35 @@ function PostForm({ productId, kind, onSent }: { productId: string; kind: PostKi
   )
 }
 
-function Section({ productId, kind, initialCount }: { productId: string; kind: PostKind; initialCount?: number }) {
+/**
+ * Writing an opinion or a question, folded behind one button so the page does not open with an empty form. It
+ * unfolds with GSAP (at once with reduced motion), and it is open on arrival when the shopper comes back from signing
+ * in to write (#opiniones or #preguntas).
+ */
+function Compose({ productId, kind, onSent }: { productId: string; kind: PostKind; onSent: (published: boolean) => void }) {
+  const [writing, setWriting] = useState(false)
+  const body = useRef<HTMLDivElement>(null), opened = useRef(false)
+  const anchor = kind === "review" ? "opiniones" : "preguntas"
+  useEffect(() => { if (window.location.hash === `#${anchor}`) queueMicrotask(() => setWriting(true)) }, [anchor])
+  useLayoutEffect(() => {
+    if (!writing || !body.current || !opened.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    gsap.fromTo(body.current, { height: 0, autoAlpha: 0 }, { height: "auto", autoAlpha: 1, duration: 0.45, ease: "power3.out", clearProps: "height,opacity,visibility" })
+  }, [writing])
+  if (!writing) return (
+    <button type="button" className="button-primary post-compose" onClick={() => { opened.current = true; setWriting(true) }}>
+      <PencilSimpleLine size={20} weight="bold" aria-hidden="true" /> {kind === "review" ? "Escribir una opinión" : "Hacer una pregunta"}
+    </button>
+  )
+  return (
+    <div ref={body} className="post-compose-body">
+      <PostForm productId={productId} kind={kind} onSent={(published) => { setWriting(false); onSent(published) }} />
+      <button type="button" className="post-compose-close" onClick={() => setWriting(false)}>{kind === "review" ? "Ahora no" : "Cerrar"}</button>
+    </div>
+  )
+}
+
+/** bare: inside the product's tabs, whose tab already names it (no title, no address of its own). */
+function Section({ productId, kind, initialCount, bare = false }: { productId: string; kind: PostKind; initialCount?: number; bare?: boolean }) {
   const port = usePosts()
   const [data, setData] = useState<PostList | null>(null)
   const [items, setItems] = useState<Post[]>([])
@@ -124,13 +154,15 @@ function Section({ productId, kind, initialCount }: { productId: string; kind: P
   }, [port, productId, kind])
   useEffect(() => { void load(1) }, [load])
 
-  if (data && !data.open) return null
   const review = kind === "review"
   const total = data?.posts.total ?? initialCount ?? 0
+  useInfoPanel({ empty: Boolean(data && !data.open), count: data ? data.posts.total : undefined })
+  if (data && !data.open) return null
+  const rated = review && data && data.summary.count > 0
   return (
-    <section id={review ? "opiniones" : "preguntas"} className="product-block posts" aria-labelledby={`${kind}-title`}>
-      <div className="product-block-head"><h2 id={`${kind}-title`}>{review ? "Opiniones de clientes" : "Preguntas y respuestas"}{total > 0 && <span className="posts-count">{total}</span>}</h2></div>
-      <div className="posts-layout">
+    <section {...(bare ? {} : { id: review ? "opiniones" : "preguntas" })} className={bare ? "posts" : "product-block posts"} aria-labelledby={bare ? undefined : `${kind}-title`} aria-label={bare ? (review ? "Opiniones de clientes" : "Preguntas y respuestas") : undefined}>
+      {!bare && <div className="product-block-head"><h2 id={`${kind}-title`}>{review ? "Opiniones de clientes" : "Preguntas y respuestas"}{total > 0 && <span className="posts-count">{total}</span>}</h2></div>}
+      <div className="posts-layout" data-rated={rated || undefined}>
         <div className="posts-side">
           {review && data && data.summary.count > 0 && (
             <div className="rating-summary squircle">
@@ -145,7 +177,7 @@ function Section({ productId, kind, initialCount }: { productId: string; kind: P
             </div>
           )}
           {notice ? <p className="post-notice squircle" role="status"><CheckCircle size={20} weight="fill" aria-hidden="true" /> {notice}</p> : null}
-          <PostForm productId={productId} kind={kind} onSent={(published) => { setNotice(published ? "Gracias. Ya está publicado." : "Gracias. Lo revisamos y lo publicamos pronto."); if (published) void load(1) }} />
+          <Compose productId={productId} kind={kind} onSent={(published) => { setNotice(published ? "Gracias. Ya está publicado." : "Gracias. Lo revisamos y lo publicamos pronto."); if (published) void load(1) }} />
         </div>
         <div className="posts-list" aria-busy={state === "loading"}>
           {state === "error" ? (
@@ -153,7 +185,7 @@ function Section({ productId, kind, initialCount }: { productId: string; kind: P
           ) : items.length === 0 && state === "loading" ? (
             <ul className="posts-items" aria-hidden="true">{[0, 1].map((n) => <li key={n} className="post squircle is-skeleton"><span className="skeleton-line short" /><span className="skeleton-line" /><span className="skeleton-line" /></li>)}</ul>
           ) : items.length === 0 ? (
-            <div className="posts-empty squircle"><ChatCircleDots size={32} weight="fill" aria-hidden="true" /><p>{review ? "Todavía nadie ha opinado sobre este producto. La primera opinión puede ser la tuya." : "Aún no hay preguntas. Si tienes una duda, escríbela y te respondemos aquí."}</p></div>
+            <p className="posts-empty-line"><ChatCircleDots size={24} weight="fill" aria-hidden="true" /> {review ? "Todavía nadie ha opinado sobre este producto. La primera opinión puede ser la tuya." : "Aún no hay preguntas. Si tienes una duda, escríbela y te respondemos aquí."}</p>
           ) : (
             <>
               <ul className="posts-items">{items.map((post) => <PostItem key={post.id} post={post} />)}</ul>
@@ -165,6 +197,11 @@ function Section({ productId, kind, initialCount }: { productId: string; kind: P
     </section>
   )
 }
+
+/** The opinions of a product, inside its tabs. */
+export function ReviewsPanel({ productId, reviewCount }: { productId: string; reviewCount: number }) { return <Section productId={productId} kind="review" initialCount={reviewCount} bare /> }
+/** The questions about a product and the store's answers, inside its tabs. */
+export function QuestionsPanel({ productId }: { productId: string }) { return <Section productId={productId} kind="question" bare /> }
 
 /** The conversation blocks of a product page. Each one hides itself when the store or the product has it switched off. */
 export function Conversations({ productId, reviews, questions, reviewCount }: { productId: string; reviews: boolean; questions: boolean; reviewCount: number }) {

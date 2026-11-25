@@ -23,8 +23,10 @@ public class OrderPlacement {
     /** test: placed while payments were in test mode; it follows the whole journey but never counts as a sale. */
     public record NewOrder(UUID customerId, UUID accountId, Map<String, String> billing, Map<String, String> shipping, String note, List<NewLine> lines, NewDiscount discount,
                            String shippingMethod, String shippingLabel, BigDecimal shippingCost, BigDecimal subtotal, BigDecimal discountTotal, BigDecimal tax, BigDecimal total,
-                           String paymentMethod, String paymentTitle, boolean test, String publicTokenHash, Instant expiresAt) {}
+                           String paymentMethod, String paymentTitle, boolean test, String publicTokenHash, Instant expiresAt, String requestKey) {}
     public record Placed(UUID id, String number) {}
+    /** An order an account already placed with the same request key: number, total and whether it was a test. */
+    public record Existing(UUID id, String number, BigDecimal total, boolean test) {}
     /** Write port for new orders. Runs inside the caller's transaction. */
     public interface Writer {
         String nextNumber();
@@ -34,6 +36,8 @@ public class OrderPlacement {
         void insertDiscount(UUID orderId, NewDiscount discount);
         /** Pending store orders whose time to pay ran out. */
         List<UUID> expired(Instant now, int limit);
+        /** The order this account placed with this request key, if any. */
+        Optional<Existing> byRequest(UUID accountId, String requestKey);
     }
     @Inject Writer writer;
     @Inject StockLedger stock;
@@ -49,6 +53,8 @@ public class OrderPlacement {
             UUID lineId = UUID.randomUUID();
             // the line exists before the stock movement that points to it
             writer.insertLine(lineId, id, line, 0);
+            // an order made in test mode never takes real units: paid in the sandbox, it would keep them forever
+            if (order.test()) continue;
             int taken = stock.takeForSale(line.productId(), line.quantity(), lineId, "Venta en la tienda, pedido #" + number);
             if (taken > 0) orders.markReduced(lineId, taken);
         }
@@ -58,13 +64,30 @@ public class OrderPlacement {
         return new Placed(id, number);
     }
 
-    /** Cancels pending store orders past their time to pay, so their units return to the shelf. Each one in its own transaction. */
-    public int cancelExpired(Instant now) {
+    /** The order this account already placed with this request key (the same try sent twice). */
+    public Optional<Existing> placedBefore(UUID accountId, String requestKey) {
+        return accountId == null || requestKey == null || requestKey.isBlank() ? Optional.empty() : writer.byRequest(accountId, requestKey);
+    }
+
+    /**
+     * Cancels pending store orders past their time to pay, so their units return to the shelf, and tells each buyer.
+     * `waiting`: orders whose payment the gateway is still processing (a PSE or Nequi payment not confirmed yet); they
+     * keep their units until the gateway answers. Each order in its own transaction.
+     */
+    public int cancelExpired(Instant now, java.util.Set<UUID> waiting) {
         int cancelled = 0;
         for (UUID id : writer.expired(now, 100)) {
-            try { service.changeStatusAlone(id, OrderStatus.CANCELLED, "Venció el plazo para pagar", null); cancelled++; }
-            catch (RuntimeException ignored) { /* paid or changed meanwhile: leave it */ }
+            if (waiting.contains(id)) continue;
+            try {
+                if (!service.expireUnpaid(id)) continue;
+                cancelled++;
+                storefront.payable(id).filter(o -> !o.email().isBlank()).ifPresent(o -> notifications.orderExpired(o.email(), o.buyerName(), o.number(), link(o.number())));
+            } catch (RuntimeException ignored) { /* paid or changed meanwhile: leave it */ }
         }
         return cancelled;
     }
+    @Inject StorefrontOrders storefront;
+    @Inject dev.nortech.norpress.notifications.application.NotificationService notifications;
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "norpress.public-url", defaultValue = "http://localhost:8000") String site;
+    private String link(String number) { return site.replaceAll("/+$", "") + "/cuenta/pedidos/" + java.net.URLEncoder.encode(number, java.nio.charset.StandardCharsets.UTF_8); }
 }

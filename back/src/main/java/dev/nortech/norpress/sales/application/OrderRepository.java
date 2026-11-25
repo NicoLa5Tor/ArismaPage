@@ -19,5 +19,15 @@ public interface OrderRepository {
     void markReturned(UUID lineId);
     /** Notes how many units a line took off the shelf, so a cancellation knows what to give back. */
     void markReduced(UUID lineId, int quantity);
+    /** A line of the order with its product, what a revived order takes from the shelf again. */
+    record Line(UUID lineId, UUID productId, String title, int quantity) {}
+    /** The order's lines that point to a product, locked. */
+    List<Line> lockLines(UUID id);
+    /** Marks (true) or clears (false) that the order was cancelled because its time to pay ran out. */
+    void markExpired(UUID id, boolean expired);
+    /** Cancelled because its time to pay ran out, and nothing of it was given back: a payment may still bring it back. */
+    boolean revivable(UUID id);
+    /** Placed while payments were in test mode: it never touches the real stock. */
+    boolean test(UUID id);
     Map<String, Object> addNote(UUID id, String body, UUID actor);
 }

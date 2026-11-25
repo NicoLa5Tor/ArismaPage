@@ -141,6 +141,15 @@ public class PaymentService {
         }
         return settled;
     }
+    /**
+     * How long an order whose payment the gateway is still processing keeps its units after its time to pay ran out.
+     * PSE, Nequi and bank transfers usually answer within hours; past this the order is cancelled like any other, and a
+     * payment that still arrives brings it back when its units are there.
+     */
+    public static final java.time.Duration GATEWAY_GRACE = java.time.Duration.ofDays(3);
+    /** Orders not to cancel yet: the gateway is still processing their payment. */
+    public java.util.Set<UUID> waitingForGateway(java.time.Instant now) { return attempts.waiting(now.minus(GATEWAY_GRACE)); }
+
     /** The team opened the order in the panel: if it waits for a Wompi payment, ask Wompi now. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public PaymentState reconcile(UUID orderId) {
@@ -234,10 +243,15 @@ public class PaymentService {
         if (!attempts.approve(attempt.reference(), externalId, Objects.toString(paymentType, ""))) return PaymentState.APPROVED;
         orders.recordPayment(attempt.orderId(), attempt.gateway(), externalId, paymentType, attempt.amount(), clock.instant(), attempt.gateway() + ":" + attempt.reference());
         var order = orders.payable(attempt.orderId()).orElseThrow();
-        if (order.status() == OrderStatus.PENDING || order.status() == OrderStatus.ON_HOLD) notifications.paymentApproved(order.email(), order.buyerName(), order.number(), order.total(), null);
-        if (order.status() == OrderStatus.PENDING || order.status() == OrderStatus.ON_HOLD) orderService.changeStatus(order.id(), OrderStatus.PROCESSING, "Pago aprobado por " + attempt.gateway() + " (" + attempt.reference() + ")", null);
-        // paid after the order was cancelled (the time to pay ran out): somebody must look at it
-        else if (!order.status().paid()) orderService.flagLatePayment(order.id(), attempt.reference());
+        String note = "Pago aprobado por " + attempt.gateway() + " (" + attempt.reference() + ")";
+        if (order.status() == OrderStatus.PENDING || order.status() == OrderStatus.ON_HOLD) {
+            notifications.paymentApproved(order.email(), order.buyerName(), order.number(), order.total(), link(order.number()));
+            orderService.changeStatus(order.id(), OrderStatus.PROCESSING, note, null);
+            notifications.storeAlert((order.test() ? "[Prueba] " : "") + "Pedido #" + order.number() + " pagado", order.buyerName() + " pagó " + pesos(order.total())
+                + " del pedido #" + order.number() + " con " + attempt.gateway() + ". Ya se puede preparar.", order.id());
+        }
+        // paid after the order was cancelled because its time to pay ran out: it comes back when its units are there
+        else if (!order.status().paid()) lateArrival(order, note + ", después de vencer el plazo para pagar", attempt.reference());
         return PaymentState.APPROVED;
     }
 
@@ -250,11 +264,41 @@ public class PaymentService {
         String ref = reference == null ? "" : reference.trim();
         if (ref.isEmpty() || ref.length() > 120) throw new IllegalArgumentException("Escribe la referencia del pago (número de la transferencia o recibo)");
         var order = orders.payable(orderId).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        // a transfer that arrived after the time to pay ran out brings the order back, when its units are still there
+        if (order.status() == OrderStatus.CANCELLED) {
+            String why = orderService.revive(orderId, "Pago registrado a mano después de vencer el plazo: " + ref, actor);
+            if (why != null) throw new Conflict("No se puede reactivar el pedido: " + why + ". Repón las unidades y vuelve a registrar el pago.");
+            orders.recordPayment(orderId, "manual", ref, "Registrado por el equipo", order.total(), clock.instant(), "manual:" + orderId + ":" + ref);
+            notifications.paymentApproved(order.email(), order.buyerName(), order.number(), order.total(), link(order.number()));
+            return;
+        }
         if (order.status() != OrderStatus.PENDING && order.status() != OrderStatus.ON_HOLD) throw new Conflict("Este pedido no está esperando un pago");
         orders.recordPayment(orderId, "manual", ref, "Registrado por el equipo", order.total(), clock.instant(), "manual:" + orderId + ":" + ref);
-        notifications.paymentApproved(order.email(), order.buyerName(), order.number(), order.total(), null);
+        notifications.paymentApproved(order.email(), order.buyerName(), order.number(), order.total(), link(order.number()));
         orderService.changeStatus(orderId, OrderStatus.PROCESSING, "Pago registrado a mano: " + ref, actor);
     }
+
+    /**
+     * A gateway payment for an order that is no longer waiting for one. An order cancelled because its time ran out comes
+     * back as paid when its units are still there; otherwise the money stays recorded, the order shows up in the panel
+     * among the cancelled ones without a refund, and both the shopper and the team are told.
+     */
+    private void lateArrival(Payable order, String note, String reference) {
+        String why = order.status() == OrderStatus.CANCELLED ? orderService.revive(order.id(), note, null) : "el pedido está " + order.status().label();
+        if (why == null) {
+            notifications.paymentApproved(order.email(), order.buyerName(), order.number(), order.total(), link(order.number()));
+            notifications.storeAlert("Pedido #" + order.number() + " pagado tarde y reactivado", order.buyerName() + " pagó el pedido #" + order.number()
+                + " después de vencer el plazo. Volvió a quedar pagado y sus unidades se apartaron de nuevo: ya se puede preparar.", order.id());
+            return;
+        }
+        orderService.flagLatePayment(order.id(), reference, why);
+        notifications.latePayment(order.email(), order.buyerName(), order.number(), order.total(), link(order.number()));
+        notifications.storeAlert("Pago tardío en el pedido cancelado #" + order.number(), order.buyerName() + " pagó " + pesos(order.total()) + " del pedido #" + order.number()
+            + ", que ya estaba cancelado, y no se pudo reactivar: " + why + ". Reactívalo cuando haya unidades o devuelve el dinero.", order.id());
+    }
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "norpress.public-url", defaultValue = "http://localhost:8000") String publicUrl;
+    private String link(String number) { return publicUrl.replaceAll("/+$", "") + "/cuenta/pedidos/" + enc(number); }
+    private static String pesos(BigDecimal value) { return "$" + String.format(Locale.forLanguageTag("es-CO"), "%,d", value.setScale(0, RoundingMode.HALF_UP).longValue()); }
 
     /** The key the shopper received, as stored. */
     public String digest(String key) { return key == null || key.isBlank() || key.length() > 128 ? null : secrets.digest(key); }

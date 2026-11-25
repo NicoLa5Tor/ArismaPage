@@ -51,6 +51,8 @@ export type OrderDetail = {
   discounts: { id: string; code: string; amount: number; tax: number }[]; payments: { id: string; provider: string; externalId: string | null; paymentType: string | null; status: string; amount: number | null; paidAt: string | null }[]
   /** Store orders: test mode, when an unpaid one is cancelled, the account that placed it and every try at paying it. */
   test?: boolean; expiresAt?: string | null; accountEmail?: string | null
+  /** When it was cancelled because its time to pay ran out (a payment that still arrives may bring it back). */
+  unpaidExpiredAt?: string | null
   attempts?: { reference: string; gateway: string; amount: number; sandbox: boolean; status: string; externalId: string | null; detail: string; createdAt: string; updatedAt: string }[]
   history: { id: string; fromStatus: OrderStatus | null; toStatus: OrderStatus; note: string; createdAt: string; actor: string | null }[]; notes: Note[]; quote: { id: string; number: string } | null
   /** The shopper's requests to cancel (newest first) and the money the store gave back. */

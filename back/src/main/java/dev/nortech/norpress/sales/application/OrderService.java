@@ -62,11 +62,49 @@ public class OrderService {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void changeStatusAlone(UUID id, OrderStatus next, String note, UUID actor) { changeStatus(id, next, note, actor); }
 
-    /** A payment arrived for an order that is no longer waiting for one (cancelled when its time ran out): leave a visible trace for the team. */
+    /** A payment arrived for an order that is no longer waiting for one and could not be brought back: a visible trace for the team. */
     @Transactional
-    public void flagLatePayment(UUID id, String reference) {
+    public void flagLatePayment(UUID id, String reference, String why) {
         var order = orders.lock(id).orElseThrow(() -> new NotFound("Pedido no encontrado"));
-        orders.recordHistory(id, order.status(), order.status(), null, "Llegó un pago aprobado (" + reference + ") con el pedido " + order.status().label() + ". Revisar y reactivar o devolver.");
+        orders.recordHistory(id, order.status(), order.status(), null, "Llegó un pago aprobado (" + reference + ") con el pedido " + order.status().label()
+            + (why == null || why.isBlank() ? "" : ": " + why) + ". Reactívalo cuando haya unidades o devuelve el dinero.");
+    }
+
+    /**
+     * An unpaid store order whose time to pay ran out: cancelled, its units back on the shelf, and marked as expired so
+     * a payment that still arrives can bring it back. False when it is no longer waiting for a payment.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public boolean expireUnpaid(UUID id) {
+        var order = orders.lock(id).orElse(null);
+        if (order == null || order.status() != OrderStatus.PENDING) return false;
+        changeStatus(id, OrderStatus.CANCELLED, "Venció el plazo para pagar", null);
+        orders.markExpired(id, true);
+        return true;
+    }
+
+    /**
+     * Brings back an order cancelled because its time to pay ran out, now that its money arrived: it takes its units off
+     * the shelf again and goes on as paid. Nothing changes when a unit is missing: the answer says which one. Returns
+     * null when the order is back.
+     */
+    @Transactional
+    public String revive(UUID id, String note, UUID actor) {
+        var order = orders.lock(id).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        if (order.status() != OrderStatus.CANCELLED || !orders.revivable(id)) return "el pedido no se canceló por falta de pago o ya tiene una devolución";
+        boolean test = orders.test(id);
+        var lines = orders.lockLines(id);
+        // every unit is checked first (each product stays locked), so a missing one leaves the order as it was
+        if (!test) for (var line : lines) if (!stock.canTake(line.productId(), line.quantity())) return "ya no hay unidades suficientes de «" + line.title() + "»";
+        if (!test) for (var line : lines) {
+            int taken = stock.takeForSale(line.productId(), line.quantity(), line.lineId(), "Venta en la tienda, pedido #" + order.number() + " reactivado");
+            if (taken > 0) orders.markReduced(line.lineId(), taken);
+        }
+        orders.moveTo(id, OrderStatus.PROCESSING);
+        orders.recordHistory(id, OrderStatus.CANCELLED, OrderStatus.PROCESSING, actor, note == null ? "" : note.trim());
+        orders.markExpired(id, false);
+        events.fire(new OrderStatusChanged(id, OrderStatus.CANCELLED, OrderStatus.PROCESSING, actor));
+        return null;
     }
 
     /** A migrated order that still needs attention comes back to the work list, or goes back to the history. */

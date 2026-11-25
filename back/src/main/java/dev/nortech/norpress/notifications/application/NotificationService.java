@@ -37,6 +37,27 @@ public class NotificationService {
     public void orderCancelled(String to, String name, String number, BigDecimal refund, String how, String link) { if (to != null && !to.isBlank()) queue(() -> Templates.orderCancelled(brand(), to, name, number, refund, how, link)); }
     public void refundCompleted(String to, String name, String number, BigDecimal amount, String how, String link) { if (to != null && !to.isBlank()) queue(() -> Templates.refundCompleted(brand(), to, name, number, amount, how, link)); }
     public void orderShipped(String to, String name, String number, String carrier, String tracking, String link) { queue(() -> Templates.orderShipped(brand(), to, name, number, carrier, tracking, link)); }
+    public void orderExpired(String to, String name, String number, String link) { if (to != null && !to.isBlank()) queue(() -> Templates.orderExpired(brand(), to, name, number, link)); }
+    public void latePayment(String to, String name, String number, BigDecimal total, String link) { if (to != null && !to.isBlank()) queue(() -> Templates.latePayment(brand(), to, name, number, total, link)); }
+    public void readyForPickup(String to, String name, String number, String link) {
+        if (to == null || to.isBlank()) return;
+        var p = settings.profile();
+        String where = p.pickupLine().isBlank() ? "la tienda" : p.pickupLine();
+        queue(() -> Templates.readyForPickup(brand(), to, name, number, where, String.join(" · ", p.hours()), link));
+    }
+    public void orderDelivered(String to, String name, String number, String link) { if (to != null && !to.isBlank()) queue(() -> Templates.orderDelivered(brand(), to, name, number, link)); }
+    /**
+     * Tells the store's team something about an order they have to look at, at the address set in the mail settings
+     * (nothing when there is none). The button opens the order in the panel.
+     */
+    public void storeAlert(String subject, String text, java.util.UUID orderId) {
+        String inbox = settings.mail().storeInbox();
+        if (inbox.isEmpty()) return;
+        queue(() -> Templates.storeAlert(brand(), inbox, subject, text, panelLink(orderId)));
+    }
+    private String panelLink(java.util.UUID orderId) {
+        return site == null || site.isBlank() || orderId == null ? null : site.replaceAll("/+$", "") + "/admin?seccion=pedidos&abrir=" + orderId;
+    }
     public void verifyEmail(String to, String name, String link) { queue(() -> Templates.verifyEmail(brand(), to, name, link)); }
     public void resetPassword(String to, String name, String link) { queue(() -> Templates.resetPassword(brand(), to, name, link)); }
 

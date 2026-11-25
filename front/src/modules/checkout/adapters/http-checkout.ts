@@ -7,7 +7,10 @@ const own = (access: Extract<OrderAccess, { kind: "account" }>) => `/shop/orders
 export const httpCheckout: CheckoutPort = {
   options: () => storeRequest<Options>("/public/checkout/options"),
   quote: (lines, delivery, coupon, email) => storeRequest<Quote>("/public/checkout/quote", storeJson("POST", { lines, delivery: delivery ?? "", coupon: coupon ?? "", email: email ?? "" })),
-  place: (lines, order, coupon, acceptsTerms) => storeRequest<Placed>("/public/checkout/orders", storeJson("POST", { lines, ...order, coupon: coupon ?? "", acceptsTerms })),
+  place: (lines, order, coupon, acceptsTerms, attempt) => {
+    const init = storeJson("POST", { lines, ...order, coupon: coupon ?? "", acceptsTerms })
+    return storeRequest<Placed>("/public/checkout/orders", { ...init, headers: { ...(init.headers as Record<string, string>), "Idempotency-Key": attempt } })
+  },
   order: (access) => access.kind === "key"
     ? storeRequest<OrderView>(`/public/orders/${encodeURIComponent(access.number)}?clave=${encodeURIComponent(access.key)}`)
     : storeRequest<OrderView>(own(access)),

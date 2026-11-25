@@ -5,7 +5,7 @@ import { httpPublicCatalog } from "../../../../modules/storefront/adapters/http-
 import { productImageSrc } from "../../../../modules/storefront/domain/catalog"
 import { httpStoreProfile } from "../../../../modules/shared/adapters/http-store-profile"
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "../../../../modules/storefront/domain/product"
-import { Conversations } from "../../../../modules/reviews/ui/conversations"
+import { QuestionsPanel, ReviewsPanel } from "../../../../modules/reviews/ui/conversations"
 import { ProductView } from "../../../../modules/storefront/ui/product/product-view"
 import { LEGAL_PATHS } from "../../../../modules/shared/domain/legal"
 import { siteUrl } from "../../../../modules/shared/domain/store-profile"
@@ -40,9 +40,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, "\\u003c") }} />
-      <ProductView detail={detail} profile={profile}>
-        <Conversations productId={detail.product.id} reviews={detail.sections.reviews} questions={detail.sections.questions} reviewCount={detail.rating.count} />
-      </ProductView>
+      <ProductView detail={detail} profile={profile} reviews={<ReviewsPanel productId={detail.product.id} reviewCount={detail.rating.count} />} questions={<QuestionsPanel productId={detail.product.id} />} />
     </>
   )
 }

@@ -5,6 +5,8 @@ import java.util.UUID;
 public interface StockLedger {
     /** Puts units back on the shelf (when the product tracks stock) and records a cancel movement linked to the order line. */
     void returnToStock(UUID productId, int quantity, UUID orderLineId, String reason, UUID actor);
+    /** Whether `quantity` units can be taken for a sale now. Locks the product until the transaction ends. */
+    boolean canTake(UUID productId, int quantity);
     /**
      * Takes units off the shelf for an order line and records a sale movement. Products that do not track stock only get
      * the movement. Returns how many units were really reduced (what a cancellation must give back).

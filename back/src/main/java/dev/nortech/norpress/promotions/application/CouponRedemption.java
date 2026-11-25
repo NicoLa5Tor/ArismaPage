@@ -12,6 +12,9 @@ public class CouponRedemption {
     @Inject CouponRepository coupons;
     Clock clock = Clock.systemUTC();
 
+    /** Called by an order being placed, before the coupon is checked: a second order with it waits for this one. */
+    public void hold(String code) { if (code != null && !code.isBlank() && code.trim().length() <= 40) coupons.lock(code.trim()); }
+
     /** email is the buyer's, for the per-customer limit; null while it is not known yet (the cart page). */
     public Redemption.Result apply(String code, List<Redemption.CartLine> lines, String email) {
         String clean = code == null ? "" : code.trim();

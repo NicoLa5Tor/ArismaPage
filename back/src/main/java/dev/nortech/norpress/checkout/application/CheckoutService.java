@@ -81,16 +81,18 @@ public class CheckoutService {
         return new Quote(cart, couponError, freeShipping, couponId);
     }
 
+    /**
+     * `to`: who receives it and the delivery details of the saved address (null for pickup). site is the store's own
+     * address, for the link in the confirmation email. requestKey names this try at placing the order: the same try
+     * sent again (a double click, a network retry) gets the order the first one made, not a second one.
+     */
     @Transactional
-    /** site is the store's own address, for the link in the confirmation email. */
-    public Placed place(List<CartPricing.Requested> lines, Buyer buyer, String couponCode, Optional<Shopper> shopper, String site) {
-        return place(lines, buyer, null, couponCode, shopper, site);
-    }
-
-    /** `to`: who receives it and the delivery details of the saved address (null for pickup or older fronts). */
-    @Transactional
-    public Placed place(List<CartPricing.Requested> lines, Buyer buyer, Buyer.Destination to, String couponCode, Optional<Shopper> shopper, String site) {
+    public Placed place(List<CartPricing.Requested> lines, Buyer buyer, Buyer.Destination to, String couponCode, Optional<Shopper> shopper, String site, String requestKey) {
         if (buyer == null) throw new IllegalArgumentException("Faltan tus datos");
+        String key = requestKey == null || requestKey.isBlank() || requestKey.length() > 80 ? null : requestKey.trim();
+        var before = placement.placedBefore(shopper.map(Shopper::accountId).orElse(null), key);
+        if (before.isPresent()) return new Placed(before.get().number(), null, before.get().total(), before.get().test());
+        coupons.hold(couponCode);
         var gateway = settings.activeGateway().orElseThrow(() -> new Conflict("La tienda no está recibiendo pagos en este momento. Escríbenos por WhatsApp y te ayudamos a completar la compra."));
         boolean test = settings.payments().test() && gateway.code().hasEnvironments();
         var store = settings.profile();
@@ -109,15 +111,15 @@ public class CheckoutService {
         String shippingMethod = delivery == Delivery.PICKUP ? "local_pickup" : cart.shipping().signum() == 0 ? "free_shipping" : "flat_rate";
         String shippingLabel = delivery == Delivery.PICKUP ? "Recoger en tienda " + store.name() + (store.localCity().isEmpty() ? "" : ", " + store.localCity())
             : cart.shipping().signum() == 0 ? "Envío gratuito" : delivery == Delivery.LOCAL ? (store.localCity().isEmpty() ? "Envío local" : "Envío en " + store.localCity()) : "Envío nacional";
-        String key = secrets.token();
+        String orderKey = secrets.token();
         var placed = placement.place(new OrderPlacement.NewOrder(customerId, shopper.map(Shopper::accountId).orElse(null), buyer.billing(), buyer.shipping(to), buyer.note(), orderLines, discount,
-            shippingMethod, shippingLabel, cart.shipping(), cart.subtotalNet(), cart.discountNet(), cart.tax(), cart.total(), gateway.code().db(), gateway.code().label, test, secrets.digest(key),
-            clock.instant().plus(Duration.ofHours(settings.checkout().unpaidHours()))));
+            shippingMethod, shippingLabel, cart.shipping(), cart.subtotalNet(), cart.discountNet(), cart.tax(), cart.total(), gateway.code().db(), gateway.code().label, test, secrets.digest(orderKey),
+            clock.instant().plus(Duration.ofHours(settings.checkout().unpaidHours())), key));
         var emailLines = cart.lines().stream().filter(CartPricing.Line::counts).map(l -> new Templates.Line(l.title(), l.quantity(), l.total())).toList();
         String number = java.net.URLEncoder.encode(placed.number(), java.nio.charset.StandardCharsets.UTF_8);
         // an order of an account is followed signed in; the key link is only for an order without one
-        String link = shopper.isPresent() ? site + "/cuenta/pedidos/" + number : site + "/pedido/" + number + "?clave=" + java.net.URLEncoder.encode(key, java.nio.charset.StandardCharsets.UTF_8);
+        String link = shopper.isPresent() ? site + "/cuenta/pedidos/" + number : site + "/pedido/" + number + "?clave=" + java.net.URLEncoder.encode(orderKey, java.nio.charset.StandardCharsets.UTF_8);
         notifications.orderPlaced(buyer.email(), buyer.fullName(), placed.number(), emailLines, cart.discount(), cart.shipping(), cart.total(), gateway.code().label, link, test);
-        return new Placed(placed.number(), key, cart.total(), test);
+        return new Placed(placed.number(), orderKey, cart.total(), test);
     }
 }

@@ -2,7 +2,7 @@
 // local or private address), so the client address it counts sign-in attempts by is the one the edge saw: Cloudflare's
 // CF-Connecting-IP, else the reverse proxy's X-Real-IP or first X-Forwarded-For entry. In production the edge in front of
 // Next.js must set or overwrite those headers; a browser that sends them straight to Next.js could choose its address.
-const PASSED = ["content-type", "cookie", "x-csrf-token", "x-turnstile-token", "user-agent"]
+const PASSED = ["content-type", "cookie", "x-csrf-token", "x-turnstile-token", "user-agent", "idempotency-key"]
 
 export function clientAddress(request: Request): string | null {
   const address = request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]

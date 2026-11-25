@@ -44,8 +44,8 @@ const orders = [], saved = {}, twins = [], versions = []
 let erasable = ''
 const hashPassword = (pass) => { const salt = crypto.randomBytes(16); return `pbkdf2-sha256$600000$${salt.toString('hex')}$${crypto.pbkdf2Sync(pass, salt, 600000, 32, 'sha256').toString('hex')}` }
 
-async function call(method, path, { body, cookie, csrf, form } = {}) {
-  const h = {}
+async function call(method, path, { body, cookie, csrf, form, headers } = {}) {
+  const h = { ...(headers || {}) }
   if (body !== undefined) h['Content-Type'] = 'application/json'
   if (form) h['Content-Type'] = 'application/x-www-form-urlencoded'
   if (cookie) h.cookie = cookie
@@ -203,7 +203,7 @@ async function main() {
   const row = (await db.query('SELECT id, status, test, subtotal, discount_total, tax_total, shipping_total, total FROM sales_order WHERE number=$1', [placed.json.number])).rows[0]
   ok(row.test && Math.abs(Number(row.subtotal) - Number(row.discount_total) + Number(row.tax_total) + Number(row.shipping_total) - Number(row.total)) < 0.02, 'los totales del pedido cuadran con el descuento')
   ok((await db.query('SELECT code FROM order_discount WHERE order_id=$1', [row.id])).rows[0]?.code === couponCode, 'el cupón queda en el pedido')
-  if (tracked) ok((await db.query('SELECT stock_quantity FROM product WHERE id=$1', [tracked.id])).rows[0].stock_quantity === tracked.stock_quantity - 2, 'el pedido aparta las unidades')
+  if (tracked) ok((await db.query('SELECT stock_quantity FROM product WHERE id=$1', [tracked.id])).rows[0].stock_quantity === tracked.stock_quantity, 'un pedido de prueba no aparta unidades reales')
   ok((await call('GET', '/admin/mail/outbox?limit=10', A)).json.items.some(i => i.kind === 'pedido_recibido' && i.subject.includes(placed.json.number)), 'se escribe el correo de pedido recibido')
 
   // PayU: the form is signed, a forged return is ignored, a signed one pays the order once
@@ -269,6 +269,36 @@ async function main() {
   ok((await call('POST', `/admin/orders/${order2}/payment`, { ...A, body: { reference: 'TRF-' + tag } })).status === 200, 'el admin registra el pago de la transferencia')
   ok((await db.query('SELECT status FROM sales_order WHERE id=$1', [order2])).rows[0].status === 'processing', 'el pedido queda pagado')
   ok((await call('POST', `/admin/orders/${order2}/payment`, { ...A, body: { reference: 'TRF-' + tag } })).status === 409, 'no se registra dos veces')
+
+  // the same try sent twice (a double click, a retry after a lost answer) makes one order
+  if (tracked) {
+    const attempt = { cookie: S.cookie, headers: { 'Idempotency-Key': 'smoke-' + tag }, body: { lines: [{ productId: tracked.id, quantity: 1 }], contact, pickup: true, acceptsTerms: true } }
+    const first = await call('POST', '/public/checkout/orders', attempt)
+    const again = await call('POST', '/public/checkout/orders', attempt)
+    orders.push(first.json.number)
+    ok(first.status === 201 && again.status === 201 && again.json.number === first.json.number, 'el mismo intento enviado dos veces da un solo pedido')
+    ok((await db.query('SELECT count(*)::int AS n FROM sales_order WHERE request_key=$1', ['smoke-' + tag])).rows[0].n === 1, 'en la base queda un solo pedido')
+    const stockNow = () => db.query('SELECT stock_quantity FROM product WHERE id=$1', [tracked.id]).then(r => r.rows[0].stock_quantity)
+    ok(await stockNow() === tracked.stock_quantity - 1, 'un pedido real aparta su unidad')
+
+    // its time to pay ran out (cancelled, the unit back on the shelf) and the transfer arrives afterwards
+    const order3 = (await db.query('SELECT id FROM sales_order WHERE number=$1', [first.json.number])).rows[0].id
+    ok((await call('POST', `/admin/orders/${order3}/status`, { ...A, body: { status: 'cancelled', note: 'Venció el plazo para pagar' } })).status === 200, 'el pedido se cancela sin pagar')
+    await db.query('UPDATE sales_order SET unpaid_expired_at=now() WHERE id=$1', [order3])
+    ok(await stockNow() === tracked.stock_quantity, 'la unidad vuelve a la tienda')
+    ok((await call('POST', `/admin/orders/${order3}/revive`, A)).status === 409, 'sin pago no se reactiva')
+    ok((await call('GET', `/admin/orders/${order3}`, A)).json.unpaidExpiredAt, 'el panel sabe que se canceló por falta de pago')
+    const late = await call('POST', `/admin/orders/${order3}/payment`, { ...A, body: { reference: 'TRF-TARDE-' + tag } })
+    ok(late.status === 200, 'el pago que llegó tarde se registra: ' + late.status + ' ' + (late.json && late.json.error || ''))
+    const back = (await call('GET', `/admin/orders/${order3}`, A)).json
+    ok(back.status === 'processing' && !back.unpaidExpiredAt, 'el pedido vuelve a quedar pagado')
+    ok(await stockNow() === tracked.stock_quantity - 1, 'y aparta de nuevo su unidad')
+    ok((await call('GET', `/admin/orders/${order3}/shipment`, A)).json.status === 'pending', 'su envío vuelve a estar por preparar')
+    ok((await call('GET', '/admin/mail/outbox?limit=10', A)).json.items.some(i => i.kind === 'pago_aprobado' && i.subject.includes(first.json.number)), 'el cliente recibe la confirmación del pago')
+    // the team marks it ready to pick up: the shopper is told
+    ok((await call('POST', `/admin/orders/${order3}/shipment/status`, { ...A, body: { status: 'packed' } })).status === 200, 'se marca listo para recoger')
+    ok((await call('GET', '/admin/mail/outbox?limit=10', A)).json.items.some(i => i.kind === 'listo_para_recoger' && i.subject.includes(first.json.number)), 'el cliente recibe «listo para recoger»')
+  }
 
   // invoice: the store attaches the PDF of its billing program and sends it; then the order is finished
   const upload = (bytes, number) => fetch(`${api}/admin/orders/${order2}/invoice?numero=${encodeURIComponent(number)}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream', cookie: A.cookie, 'X-CSRF-Token': A.csrf }, body: bytes })

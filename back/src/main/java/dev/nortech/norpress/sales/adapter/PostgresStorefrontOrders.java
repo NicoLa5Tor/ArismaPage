@@ -26,9 +26,16 @@ public class PostgresStorefrontOrders implements OrderPlacement.Writer, Storefro
     public String nextNumber() { return Jdbc.with(db, c -> String.valueOf(Jdbc.count(c, "SELECT nextval('sales_order_number_seq') AS n"))); }
 
     public void insert(UUID id, String number, OrderPlacement.NewOrder o) {
-        Jdbc.with(db, c -> Jdbc.update(c, "INSERT INTO sales_order(id,number,customer_id,account_id,status,subtotal,discount_total,shipping_total,tax_total,total,prices_include_tax,payment_method,payment_method_title,created_via,placed_at,billing,shipping,customer_note,public_token_hash,expires_at,test)"
-            + " VALUES(?,?,?,?,'pending',?,?,?,?,?,false,?,?,'storefront',now(),?::jsonb,?::jsonb,?,?,?,?)",
-            id, number, o.customerId(), o.accountId(), o.subtotal(), o.discountTotal(), o.shippingCost(), o.tax(), o.total(), o.paymentMethod(), o.paymentTitle(), json(o.billing()), json(o.shipping()), o.note(), o.publicTokenHash(), o.expiresAt(), o.test()));
+        try {
+            Jdbc.with(db, c -> Jdbc.update(c, "INSERT INTO sales_order(id,number,customer_id,account_id,status,subtotal,discount_total,shipping_total,tax_total,total,prices_include_tax,payment_method,payment_method_title,created_via,placed_at,billing,shipping,customer_note,public_token_hash,expires_at,test,request_key)"
+                + " VALUES(?,?,?,?,'pending',?,?,?,?,?,false,?,?,'storefront',now(),?::jsonb,?::jsonb,?,?,?,?,?)",
+                id, number, o.customerId(), o.accountId(), o.subtotal(), o.discountTotal(), o.shippingCost(), o.tax(), o.total(), o.paymentMethod(), o.paymentTitle(), json(o.billing()), json(o.shipping()), o.note(), o.publicTokenHash(), o.expiresAt(), o.test(),
+                o.requestKey() == null || o.requestKey().isBlank() ? null : o.requestKey()));
+        } catch (IllegalStateException e) {
+            // the same try arrived twice at once: the first one is placing the order
+            if (Jdbc.duplicate(e)) throw new dev.nortech.norpress.shared.domain.Conflict("Ya estamos creando tu pedido. Revisa «Mis pedidos» en un momento.");
+            throw e;
+        }
     }
     public void insertLine(UUID lineId, UUID orderId, OrderPlacement.NewLine l, int stockReduced) {
         Jdbc.with(db, c -> Jdbc.update(c, "INSERT INTO order_line(id,order_id,product_id,sku,title,quantity,unit_price,subtotal,discount,tax,total,tax_rate_percent,stock_reduced) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -39,6 +46,10 @@ public class PostgresStorefrontOrders implements OrderPlacement.Writer, Storefro
     }
     public void insertDiscount(UUID orderId, OrderPlacement.NewDiscount d) {
         Jdbc.with(db, c -> Jdbc.update(c, "INSERT INTO order_discount(id,order_id,coupon_id,code,amount,tax) VALUES(?,?,?,?,?,?)", UUID.randomUUID(), orderId, d.couponId(), d.code(), d.amount(), d.tax()));
+    }
+    public Optional<OrderPlacement.Existing> byRequest(UUID accountId, String requestKey) {
+        return Jdbc.with(db, c -> Jdbc.one(c, "SELECT id, number, total, test FROM sales_order WHERE account_id=? AND request_key=?", accountId, requestKey)
+            .map(r -> new OrderPlacement.Existing((UUID) r.get("id"), (String) r.get("number"), (BigDecimal) r.get("total"), Boolean.TRUE.equals(r.get("test")))));
     }
     public List<UUID> expired(Instant now, int limit) {
         return Jdbc.with(db, c -> Jdbc.list(c, "SELECT id FROM sales_order WHERE status='pending' AND expires_at IS NOT NULL AND expires_at<? ORDER BY expires_at LIMIT ?", now, limit).stream().map(r -> (UUID) r.get("id")).toList());

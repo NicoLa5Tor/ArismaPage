@@ -92,6 +92,8 @@ public class AfterSaleService {
         }
         var s = plan.standing();
         notifications.orderCancelled(s.email(), s.name(), ref.number(), money ? left : null, money ? plan.route().label : null, link(ref.number()));
+        if (byShopper) notifications.storeAlert("El cliente canceló el pedido #" + ref.number(), s.name() + " canceló el pedido #" + ref.number() + ". " + note.replaceFirst("^Cancelado por el cliente: ", "Motivo: ") + "."
+            + (!money ? " No había pagado: no hay nada que devolver." : plan.route() == RefundRoute.TRANSFER ? " Hay que transferirle " + AfterSale.pesos(left) + (payout != null ? "; ya dio su cuenta." : "; falta que dé su cuenta.") : " El reembolso de " + AfterSale.pesos(left) + " sale solo por la pasarela."), orderId);
         changed.fire(new AfterSaleChanged(orderId));
         return plan.route() == RefundRoute.TRANSFER ? Optional.empty() : Optional.ofNullable(refundId);
     }
@@ -137,6 +139,7 @@ public class AfterSaleService {
                 }
                 afterSale.update(refundId, "checking", "", "La pasarela no respondió. Revisa en su panel si el reembolso se hizo antes de hacer otra cosa.");
                 orders.recordHistory(row.orderId(), currentStatus(row.orderId()), currentStatus(row.orderId()), null, "La pasarela no respondió al reembolso: hay que revisarlo en su panel");
+                alertRefund(row.orderId(), "Reembolso por revisar", "La pasarela no respondió al reembolso. Revisa en su panel si se hizo y dilo en el pedido.");
             }
         }
         changed.fire(new AfterSaleChanged(row.orderId()));
@@ -148,6 +151,7 @@ public class AfterSaleService {
         var row = afterSale.refund(refundId).orElse(null);
         if (row == null || !row.status().equals("processing")) return;
         afterSale.update(refundId, "checking", row.gatewayReference(), "La pasarela no ha confirmado el reembolso en un día. Revísalo en su panel.");
+        alertRefund(row.orderId(), "Reembolso por revisar", "La pasarela lleva un día sin confirmar el reembolso. Revisa en su panel si se hizo y dilo en el pedido.");
         changed.fire(new AfterSaleChanged(row.orderId()));
     }
 
@@ -158,7 +162,9 @@ public class AfterSaleService {
         if (row.status().equals("succeeded") || row.status().equals("to_transfer")) return;
         afterSale.update(refundId, "to_transfer", row.gatewayReference(), failure);
         var status = currentStatus(row.orderId());
-        orders.recordHistory(row.orderId(), status, status, null, failure + ". Pasa a transferencia" + (afterSale.payout(row.orderId()).isPresent() ? "" : " (falta la cuenta del cliente)"));
+        boolean account = afterSale.payout(row.orderId()).isPresent();
+        orders.recordHistory(row.orderId(), status, status, null, failure + ". Pasa a transferencia" + (account ? "" : " (falta la cuenta del cliente)"));
+        alertRefund(row.orderId(), "Reembolso por transferir", failure + ". Hay que transferirle " + AfterSale.pesos(row.amount()) + " al cliente" + (account ? "; ya dio su cuenta." : "; falta que dé su cuenta."));
         changed.fire(new AfterSaleChanged(row.orderId()));
     }
 
@@ -190,6 +196,7 @@ public class AfterSaleService {
         afterSale.savePayout(order.id(), vault.seal(payout.toMap()));
         var status = currentStatus(order.id());
         orders.recordHistory(order.id(), status, status, null, "El cliente dio su cuenta para el reembolso (" + payout.masked() + ")");
+        alertRefund(order.id(), "Cuenta para reembolso", "El cliente dio su cuenta para el reembolso de " + AfterSale.pesos(row.amount()) + ". Ya puedes transferirle y registrar la transferencia.");
         changed.fire(new AfterSaleChanged(row.orderId()));
     }
 
@@ -256,6 +263,22 @@ public class AfterSaleService {
         changed.fire(new AfterSaleChanged(orderId));
     }
 
+    /**
+     * An order cancelled because its time to pay ran out, whose money arrived anyway: the team brings it back once its
+     * units are there (it was not possible when the payment arrived). It goes on as paid and the shopper is told.
+     */
+    @Transactional
+    public void revive(UUID orderId, UUID actor) {
+        orders.lock(orderId).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        var s = afterSale.standing(orderId).orElseThrow(() -> new NotFound("Pedido no encontrado"));
+        if (s.paid().signum() <= 0) throw new Conflict("Este pedido no tiene pagos: el cliente tiene que hacer el pedido de nuevo");
+        if (s.refunded().signum() > 0 || s.inProgress().signum() > 0) throw new Conflict("Este pedido ya tiene una devolución: no se puede reactivar");
+        String why = orderService.revive(orderId, "Reactivado por la tienda: el pago había llegado después de vencer el plazo", actor);
+        if (why != null) throw new Conflict("No se puede reactivar: " + why);
+        notifications.paymentApproved(s.email(), s.name(), s.number(), s.paid(), link(s.number()));
+        changed.fire(new AfterSaleChanged(orderId));
+    }
+
     /** An old request (from before shoppers cancelled on their own): approving it cancels and refunds. */
     public void approve(UUID orderId, String answerText, UUID actor) {
         AfterSale.answer(answerText, false);
@@ -289,6 +312,10 @@ public class AfterSaleService {
         if (byShopper && s.migrated()) return "Este pedido es de la tienda anterior. Escríbenos por WhatsApp y te ayudamos.";
         if (s.inProgress().signum() > 0) return "Este pedido ya tiene un reembolso en curso";
         return null;
+    }
+    /** Tells the team about a refund that needs them. */
+    private void alertRefund(UUID orderId, String what, String text) {
+        afterSale.standing(orderId).ifPresent(s -> notifications.storeAlert(what + ": pedido #" + s.number(), "Pedido #" + s.number() + " de " + s.name() + ". " + text, orderId));
     }
     private OrderStatus currentStatus(UUID orderId) { return orders.lock(orderId).map(OrderRepository.OrderRef::status).orElseThrow(() -> new NotFound("Pedido no encontrado")); }
     private String link(String number) { return site == null ? null : site.replaceAll("/+$", "") + "/cuenta/pedidos/" + java.net.URLEncoder.encode(number, java.nio.charset.StandardCharsets.UTF_8); }

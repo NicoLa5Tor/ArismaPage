@@ -62,7 +62,7 @@
   .worlds-viewport { @apply overflow-x-auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .worlds-track { @apply flex w-max gap-4 px-4 sm:px-8; }
   .world { @apply shrink-0; scroll-snap-align: center; width: min(85vw, 28rem); opacity: 0; translate: 0 4rem; transition: opacity 700ms var(--ease-out), translate 900ms var(--ease-out), flex-grow 700ms var(--ease-out); transition-delay: calc(var(--i, 0) * 70ms), calc(var(--i, 0) * 70ms), 0ms; }
-  .worlds-track[data-shown="true"] .world { opacity: 1; translate: 0 0; }
+  .worlds-viewport[data-shown="true"] .world { opacity: 1; translate: 0 0; }
   .world-card { @apply relative flex h-full flex-col gap-4 overflow-hidden rounded-3xl p-4 no-underline focus-visible:outline-2 focus-visible:outline-offset-4; background: var(--tone); color: var(--on-tone); outline-color: #fff; }
   .world-card:active { opacity: 0.92; }
   .world-photo { @apply grid aspect-4/3 place-items-center overflow-hidden rounded-2xl bg-white/30; }
@@ -198,6 +198,15 @@
   .how[data-live="true"] .how-card[data-state="active"] .how-ship { transition-delay: 900ms; }
   .how[data-live="true"] .how-card:not([data-state="active"]) .how-box img { translate: -50% 3rem; rotate: -8deg; }
   .how[data-live="true"] .how-card[data-state="active"] .how-box img { transition-delay: 250ms; }
+  /* celular bajo: la ilustración se achica para que cada paso quepa entero en la pantalla fija */
+  @media (width < 40rem) and (height < 48rem) {
+    .how[data-live="true"] .how-art { @apply gap-2; }
+    .how[data-live="true"] .how-fan img { @apply w-24; }
+    .how[data-live="true"] .how-box { @apply h-24 w-24; }
+    .how[data-live="true"] .how-box img { @apply bottom-6 w-20; }
+    .how[data-live="true"] .how-box-front { @apply h-12; }
+    .how[data-live="true"] .how-chat { @apply gap-1 p-2; }
+  }
 
   /* 6. Pregúntale a Arisma */
   .ask-teaser { @apply overflow-hidden py-24 text-white; background: #0f0e14; }
@@ -256,14 +265,19 @@
   .site-footer ul { @apply flex flex-col gap-0 text-sm lg:gap-2; }
   .site-footer li { @apply flex items-start gap-2; }
   .site-footer li > svg { @apply mt-0.5 shrink-0; }
+  .site-footer li:has(> a) { @apply items-center; }
+  .site-footer li:has(> a) > svg { @apply mt-0; }
   .site-footer li > a { @apply max-lg:inline-flex max-lg:min-h-11 max-lg:items-center; }
+  @media (hover: none) { .site-footer li > a { @apply inline-flex min-h-11 items-center; } }
   .site-footer a { @apply rounded text-neutral-300 underline-offset-4 hover:text-white hover:underline active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2; outline-color: var(--tone-orange); }
   .site-footer-brand { @apply flex flex-col items-start gap-4; }
   .site-footer-brand img { @apply h-12 w-auto rounded-lg; }
   .site-footer-brand p { @apply max-w-xs text-sm; }
-  .site-footer ul.site-footer-social { @apply flex-row; }
+  .site-footer ul.site-footer-social { @apply flex-row gap-2; }
   .site-footer-social a { @apply grid size-12 place-items-center rounded-full border border-white/20 transition-colors duration-300 hover:bg-white/10; }
-  .site-footer-legal { @apply flex-row flex-wrap justify-between gap-2 text-sm text-neutral-400; }
+  .site-footer-legal { @apply flex-row flex-wrap items-center justify-between gap-4 text-sm text-neutral-400; }
+  .site-footer-legal p { @apply font-semibold text-neutral-200; }
+  .site-footer-legal ul { @apply flex-row flex-wrap gap-x-4; }
 
   @media (prefers-reduced-motion: reduce) {
     .reveal { opacity: 1; translate: none; transition: none; }

@@ -10,6 +10,7 @@ export const httpOrders: OrdersPort = {
   addNote(id, body, csrf) { return request(`/orders/${seg(id)}/notes`, json("POST", { body }, csrf)) },
   async checkPayment(id, csrf) { return (await request<{ status: string }>(`/orders/${seg(id)}/payment/check`, { method: "POST", headers: { "X-CSRF-Token": csrf } })).status },
   async registerPayment(id, reference, csrf) { await request(`/orders/${seg(id)}/payment`, json("POST", { reference }, csrf)) },
+  revive(id, csrf) { return request(`/orders/${seg(id)}/revive`, { method: "POST", headers: { "X-CSRF-Token": csrf } }) },
   invoice(id) { return request(`/orders/${seg(id)}/invoice`) },
   attachInvoice(id, file, number, csrf) { return request(`/orders/${seg(id)}/invoice?${qs({ numero: number.trim() })}`, { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-CSRF-Token": csrf }, body: file }) },
   emailInvoice(id, to, csrf) { return request(`/orders/${seg(id)}/invoice/email`, json("POST", { to: to.trim() || null }, csrf)) },

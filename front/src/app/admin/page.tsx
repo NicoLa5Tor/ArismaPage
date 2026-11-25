@@ -65,6 +65,9 @@ function Admin() {
     setError("")
   }, [router])
   const push = useCallback((kind: Open["kind"], id: string) => setOpen(o => [...o.filter(x => !(x.kind === kind && x.id === id)), { kind, id }]), [])
+  // the team's emails link to one order: it opens once the panel is signed in
+  const asked = params.get("abrir")
+  useEffect(() => { if (auth && asked && /^[0-9a-f-]{36}$/i.test(asked)) push("order", asked) }, [auth, asked, push])
   const session = useMemo<AdminSession | null>(() => auth && ({
     csrf: auth.csrf, user: auth.user, version, changed: () => setVersion(v => v + 1), notify: m => { setError(""); setNotice(m) }, go, openAccount: () => setAccount(true),
     openOrder: id => push("order", id), openCustomer: id => push("customer", id), openQuote: id => push("quote", id), openProduct: id => push("product", id),

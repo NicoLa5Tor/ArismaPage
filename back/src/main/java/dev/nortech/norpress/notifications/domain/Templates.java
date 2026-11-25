@@ -47,6 +47,31 @@ public final class Templates {
             "Te devolvimos " + pesos(amount) + " del pedido #" + number + ", " + how + ".", List.of(), link == null ? null : "Ver mi pedido", link,
             "Según tu banco o la pasarela, puede tardar unos días hábiles en verse en tu cuenta. Si no lo ves pasado ese tiempo, responde este correo.");
     }
+    public static Message orderExpired(Brand brand, String to, String name, String number, String link) {
+        return build(brand, "pedido_vencido", to, "Pedido #" + number + " cancelado por falta de pago", "Hola, " + first(name),
+            "Cancelamos tu pedido #" + number + " porque no recibimos el pago a tiempo. No se hizo ningún cobro y los productos volvieron a la tienda.", List.of(),
+            link == null ? null : "Ver mi pedido", link, "Si todavía lo quieres, vuelve a hacer el pedido. Si ya pagaste, responde este correo y lo revisamos.");
+    }
+    /** The money arrived after the order was cancelled and it could not be brought back (a product ran out). */
+    public static Message latePayment(Brand brand, String to, String name, String number, BigDecimal total, String link) {
+        return build(brand, "pago_tardio", to, "Recibimos tu pago del pedido #" + number, "Hola, " + first(name),
+            "Recibimos tu pago de " + pesos(total) + " del pedido #" + number + ", pero llegó después de que el pedido se cancelara por falta de pago y ya no tenemos todos sus productos.", List.of(),
+            link == null ? null : "Ver mi pedido", link, "Te escribimos para entregarte lo que haya o devolverte el dinero. Si prefieres, responde este correo.");
+    }
+    public static Message readyForPickup(Brand brand, String to, String name, String number, String where, String hours, String link) {
+        return build(brand, "listo_para_recoger", to, "Tu pedido #" + number + " está listo para recoger", "Hola, " + first(name),
+            "Tu pedido #" + number + " ya está listo. Puedes recogerlo en " + where + ".", List.of(), link == null ? null : "Ver mi pedido", link,
+            (hours == null || hours.isBlank() ? "" : "Horario: " + hours + ". ") + "Trae tu número de pedido y, si lo recoge otra persona, que traiga tu nombre completo.");
+    }
+    public static Message orderDelivered(Brand brand, String to, String name, String number, String link) {
+        return build(brand, "pedido_entregado", to, "Tu pedido #" + number + " fue entregado", "Hola, " + first(name),
+            "Tu pedido #" + number + " ya fue entregado. Gracias por comprar en " + brand.name() + ".", List.of(), link == null ? null : "Ver mi pedido", link,
+            "Si algo no llegó bien, responde este correo y te ayudamos.");
+    }
+    /** Something the store's team has to do, with a button to the order in the panel. */
+    public static Message storeAlert(Brand brand, String to, String subject, String text, String panelLink) {
+        return build(brand, "aviso_tienda", to, subject, "Aviso de la tienda", text, List.of(), panelLink == null ? null : "Abrir en el panel", panelLink, null);
+    }
     public static Message invoice(Brand brand, String to, String name, String orderNumber, String invoiceNumber, String link) {
         String which = invoiceNumber == null || invoiceNumber.isBlank() ? "la factura" : "la factura " + invoiceNumber;
         return build(brand, "factura", to, "Factura de tu pedido #" + orderNumber, "Hola, " + first(name),

@@ -12,8 +12,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Every ten minutes, cancels store orders whose time to pay ran out, so the units they held go back on sale. Right
- * before, it asks the gateway about those orders only: one paid while nobody was looking is marked paid, never cancelled.
+ * Every five minutes, cancels store orders whose time to pay ran out, so the units they held go back on sale. Right
+ * before, it asks the gateway about those orders only: one paid while nobody was looking is marked paid, never cancelled,
+ * and one whose payment the gateway is still processing (PSE, Nequi) waits for its answer.
  */
 @ApplicationScoped
 public class UnpaidOrdersJob {
@@ -29,7 +30,7 @@ public class UnpaidOrdersJob {
     void round() {
         Instant now = Instant.now();
         try { payments.reconcileExpired(now); } catch (RuntimeException ignored) { /* the gateway did not answer: the order waits for the next round */ }
-        try { placement.cancelExpired(now); } catch (RuntimeException ignored) { /* next round tries again */ }
+        try { placement.cancelExpired(now, payments.waitingForGateway(now)); } catch (RuntimeException ignored) { /* next round tries again */ }
         // refunds never sent (PayU's first 10 minutes, a restart) and those PayU is still reviewing
         try { afterSale.processPending(); } catch (RuntimeException ignored) { /* next round tries again */ }
     }

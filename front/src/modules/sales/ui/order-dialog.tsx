@@ -1,5 +1,6 @@
 "use client"
 
+import { refundStanding } from "../domain/orders"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { FileText, Flask, Receipt, Storefront, User } from "@phosphor-icons/react"
 import type { Address, OrderDetail } from "../domain/orders"
@@ -82,6 +83,14 @@ export function OrderDialog({ id, onClose }: { id: string; onClose: () => void }
     try { await api.registerPayment(id, reference, csrf); notify(`Pago registrado en el pedido #${o?.number}.`); setPicked(null); changed(); order.reload() }
     catch (err) { setError(err instanceof Error ? err.message : "No se pudo registrar el pago") }
   }
+  async function revive() {
+    setBusy(true); setError("")
+    try { await api.revive(id, csrf); notify(`Pedido #${o?.number} reactivado: ya se puede preparar.`); setPicked(null); changed(); order.reload(); shipment.reload() }
+    catch (err) { setError(err instanceof Error ? err.message : "No se pudo reactivar el pedido") } finally { setBusy(false) }
+  }
+  // cancelled because its time to pay ran out: its money may still arrive (or have arrived)
+  const expired = o?.stage === "cancelled" && Boolean(o.unpaidExpiredAt)
+  const lateMoney = expired && o ? (() => { const r = refundStanding(o); return r.paid > 0 && r.refunded === 0 && !r.open })() : false
   const name = o ? fullName(o) || "Cliente sin nombre" : ""
   const history = o ? [
     // an event that did not change the status (an invoice sent, for example) reads as what happened
@@ -100,7 +109,12 @@ export function OrderDialog({ id, onClose }: { id: string; onClose: () => void }
     meta={o ? <><StageBadge stage={o.stage} method={o.deliveryMethod} />{o.test && <Badge tone="warn"><Flask size={12} aria-hidden="true" className="mr-1 inline" />Prueba</Badge>}{o.createdVia === "storefront" && <Badge tone="info"><Storefront size={12} aria-hidden="true" className="mr-1 inline" />Tienda</Badge>}<span className="font-semibold tabular-nums">{money(o.total)}</span><span>{dateTime(o.placedAt)}</span><span>{name}</span></> : undefined}>
     {order.error ? <Failure message={order.error} onRetry={order.reload} /> : !o ? <Loading label="Cargando pedido" rows={5} /> : <div className="grid gap-6">
       {o.stage === "issue" && <p className="glass-banner" role="status">{o.status === "on_hold" ? "El pedido está en espera: revisa el pago o la disponibilidad y luego reanúdalo." : s?.failureReason ? `No se entregó: ${s.failureReason}. Reintenta el envío o registra la devolución.` : "Este pedido necesita una revisión."}</p>}
-      {o.stage === "cancelled" && <p className="glass-banner" role="status"><StageBadge stage="cancelled" />Este pedido ya no sigue el recorrido de entrega.</p>}
+      {o.stage === "cancelled" && !expired && <p className="glass-banner" role="status"><StageBadge stage="cancelled" />Este pedido ya no sigue el recorrido de entrega.</p>}
+      {expired && !lateMoney && <p className="glass-banner" role="status"><StageBadge stage="cancelled" />Se canceló porque no se pagó a tiempo. Si el cliente pagó por transferencia, registra el pago en «Pago» y el pedido vuelve a quedar activo.</p>}
+      {lateMoney && <div className="glass-banner orders-history-banner" role="status">
+        <span>El pago llegó después de cancelar el pedido por falta de pago. Reactívalo para prepararlo (necesita unidades disponibles) o devuelve el dinero en «Cancelación y reembolsos».</span>
+        {canManage && <button type="button" className="glass-chip glass-chip-primary" disabled={busy} onClick={() => void revive()}>{busy ? "Reactivando…" : "Reactivar pedido"}</button>}
+      </div>}
       {o.migrated && o.stage !== "delivered" && o.stage !== "cancelled" && <div className="glass-banner orders-history-banner" role="status">
         <span>{o.keptActive ? "Este pedido viene de la tienda anterior y lo trajiste a la lista de pedidos." : "Este pedido viene de la tienda anterior: está en el Historial y no aparece en el trabajo del día."}</span>
         {canManage && <button type="button" className="glass-chip" disabled={busy} onClick={() => void keepActive(!o.keptActive)}>{o.keptActive ? "Enviar al historial" : "Traer a Pedidos"}</button>}

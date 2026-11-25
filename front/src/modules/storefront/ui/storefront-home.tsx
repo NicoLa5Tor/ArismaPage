@@ -4,7 +4,7 @@ import { AskTeaser } from "./home/ask-teaser"
 import { Benefits } from "./home/benefits"
 import { Faq } from "./home/faq"
 import { Favorites } from "./home/favorites"
-import { FinalCta, SiteFooter } from "./home/final-cta"
+import { FinalCta } from "./home/final-cta"
 import { HowItWorks } from "./home/how-it-works"
 import { Manifesto } from "./home/manifesto"
 import { SiteHeader } from "./home/site-header"
@@ -35,7 +35,6 @@ export function StorefrontHome({ categories, favorites, ranked, productCount }: 
       <AskTeaser />
       <Faq />
       <FinalCta categories={categories} />
-      <SiteFooter />
     </main>
   )
 }

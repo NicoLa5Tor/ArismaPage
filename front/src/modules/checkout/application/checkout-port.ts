@@ -12,7 +12,8 @@ export interface CheckoutPort {
   quote(lines: CartRequest, delivery: Delivery | null, coupon?: string, email?: string): Promise<Quote>
   /** Needs the store session (the cookie names the buyer). */
   /** acceptsTerms: the buyer ticked the box; the store records which version of each policy they accepted. */
-  place(lines: CartRequest, order: AccountOrder, coupon: string | undefined, acceptsTerms: boolean): Promise<Placed>
+  /** attempt: one key per try at buying; sending the same try again returns the order it already made, never a second one. */
+  place(lines: CartRequest, order: AccountOrder, coupon: string | undefined, acceptsTerms: boolean, attempt: string): Promise<Placed>
   order(access: OrderAccess): Promise<OrderView>
   /** Starts a payment with the store's active method. */
   startPayment(access: OrderAccess): Promise<Instruction>

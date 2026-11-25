@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { ArrowLeft, Bank, CircleNotch, CreditCard, Flask, ImageSquare, Lock, Plus, Storefront, Truck, UserCircle, WhatsappLogo } from "@phosphor-icons/react"
 import { useAccount } from "../../account/ui/account-context"
 import { useCart } from "../../cart/ui/cart-context"
@@ -48,6 +48,8 @@ export function CheckoutView({ legal, cancels, whatsapp }: { legal: { label: str
   const [accepts, setAccepts] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false), [error, setError] = useState(""), [loadError, setLoadError] = useState(false)
+  // one key per try at buying: a double click or a retry after a lost answer gets the same order, never two
+  const attempt = useRef("")
 
   const address = addresses?.find((a) => a.id === chosen) ?? null
   const delivery = deliveryOf({ pickup, city: address?.city ?? "", state: address?.state ?? "" }, profile)
@@ -86,9 +88,13 @@ export function CheckoutView({ legal, cancels, whatsapp }: { legal: { label: str
     if (!payment) { setError("La tienda no está recibiendo pagos en este momento. Escríbenos por WhatsApp."); return }
     if (couponProblem) { setError(`Cupón: ${couponProblem}. Quítalo o escribe otro.`); return }
     if (!accepts) { setError("Acepta los términos y las políticas de la tienda para continuar."); return }
+    if (busy) return
     setBusy(true)
+    if (!attempt.current) attempt.current = crypto.randomUUID()
     try {
-      const placed = await port.place(lines, { contact, pickup, addressId: pickup ? null : address!.id, note }, cart.coupon, accepts)
+      const placed = await port.place(lines, { contact, pickup, addressId: pickup ? null : address!.id, note }, cart.coupon, accepts, attempt.current)
+      // the order exists: a new try (another purchase) gets a new key
+      attempt.current = ""
       // the order is the account's: it is followed and paid signed in, from "Mis pedidos"
       const orderUrl = `/cuenta/pedidos/${encodeURIComponent(placed.number)}`
       cart.clear()

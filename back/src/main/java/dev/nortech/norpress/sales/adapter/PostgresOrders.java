@@ -54,7 +54,7 @@ public class PostgresOrders implements OrderQueries, OrderRepository {
             order.put("quote",Jdbc.one(c,"SELECT id,number FROM quote_request WHERE order_id=?",id).orElse(null));
             // the invoice, if one was attached or the order does not need one (invoicing module)
             order.put("invoice",Jdbc.one(c,"SELECT status,number,file_name,array_to_string(channels,',') AS channels,sent_to,sent_at FROM order_invoice WHERE order_id=?",id).orElse(null));
-            Jdbc.one(c,"SELECT o.test,o.expires_at,a.email AS account_email FROM sales_order o LEFT JOIN customer_account a ON a.id=o.account_id WHERE o.id=?",id).ifPresent(order::putAll);
+            Jdbc.one(c,"SELECT o.test,o.expires_at,o.unpaid_expired_at,a.email AS account_email FROM sales_order o LEFT JOIN customer_account a ON a.id=o.account_id WHERE o.id=?",id).ifPresent(order::putAll);
             order.put("cancellations",Jdbc.list(c,"SELECT r.id,r.reason,r.status,r.answer,r.requested_at,r.decided_at,a.email AS decided_by FROM order_cancellation_request r LEFT JOIN admin_user a ON a.id=r.decided_by WHERE r.order_id=? ORDER BY r.requested_at DESC",id));
             order.put("paidAmount",Jdbc.one(c,"SELECT "+PostgresAfterSale.PAID+" AS n FROM sales_order o WHERE o.id=?",id).map(r -> r.get("n")).orElse(java.math.BigDecimal.ZERO));
             order.put("refunds",Jdbc.list(c,"SELECT r.id,r.amount,r.method,r.reference,r.note,r.refunded_at,r.route,r.status,r.requested_by,r.gateway_reference,r.failure,r.completed_at,a.email AS created_by FROM order_refund r LEFT JOIN admin_user a ON a.id=r.created_by WHERE r.order_id=? ORDER BY r.refunded_at",id));
@@ -80,6 +80,15 @@ public class PostgresOrders implements OrderQueries, OrderRepository {
             .map(r -> new ReducedLine((UUID)r.get("id"),(UUID)r.get("productId"),((Number)r.get("stockReduced")).intValue())).toList());
     }
     public void markReduced(UUID lineId, int quantity) { Jdbc.with(db,c -> Jdbc.update(c,"UPDATE order_line SET stock_reduced=? WHERE id=?",quantity,lineId)); }
+    public List<Line> lockLines(UUID id) {
+        return Jdbc.with(db,c -> Jdbc.list(c,"SELECT id,product_id,title,quantity FROM order_line WHERE order_id=? AND product_id IS NOT NULL ORDER BY id FOR UPDATE",id).stream()
+            .map(r -> new Line((UUID)r.get("id"),(UUID)r.get("productId"),(String)r.get("title"),((Number)r.get("quantity")).intValue())).toList());
+    }
+    public void markExpired(UUID id, boolean expired) { Jdbc.with(db,c -> Jdbc.update(c,"UPDATE sales_order SET unpaid_expired_at=CASE WHEN ? THEN now() ELSE NULL END,updated_at=now() WHERE id=?",expired,id)); }
+    public boolean revivable(UUID id) {
+        return Jdbc.with(db,c -> Jdbc.one(c,"SELECT 1 AS n FROM sales_order o WHERE o.id=? AND o.status='cancelled' AND o.unpaid_expired_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM order_refund r WHERE r.order_id=o.id)",id).isPresent());
+    }
+    public boolean test(UUID id) { return Jdbc.with(db,c -> Jdbc.one(c,"SELECT test FROM sales_order WHERE id=?",id).map(r -> Boolean.TRUE.equals(r.get("test"))).orElse(false)); }
     public void markReturned(UUID lineId) { Jdbc.with(db,c -> Jdbc.update(c,"UPDATE order_line SET stock_reduced=0 WHERE id=?",lineId)); }
     public Map<String,Object> addNote(UUID id, String body, UUID actor) {
         UUID noteId=UUID.randomUUID();

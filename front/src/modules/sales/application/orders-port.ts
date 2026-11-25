@@ -13,6 +13,8 @@ export interface OrdersPort {
   addNote(id: string, body: string, csrf: string): Promise<Note>
   /** A payment received outside the gateways (a transfer, cash at the shop): the order moves to processing. */
   registerPayment(id: string, reference: string, csrf: string): Promise<void>
+  /** Brings back an order cancelled for lack of payment whose money arrived later, once its units are there. */
+  revive(id: string, csrf: string): Promise<OrderDetail>
   /** Asks the gateway about a payment still open on the order; answers its state ("approved"…) or "" when there was nothing to ask. */
   checkPayment(id: string, csrf: string): Promise<string>
   invoice(id: string): Promise<Invoice>

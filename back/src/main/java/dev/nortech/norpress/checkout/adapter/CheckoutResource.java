@@ -41,7 +41,7 @@ public class CheckoutResource {
 
     /** The order and the proof of what the buyer accepted are written together: one never exists without the other. */
     @POST @Path("/orders") @jakarta.transaction.Transactional
-    public Response place(AccountOrderInput in, @CookieParam("norpress_cliente") String token, @HeaderParam("X-Forwarded-For") String forwarded, @HeaderParam("User-Agent") String agent,
+    public Response place(AccountOrderInput in, @CookieParam("norpress_cliente") String token, @HeaderParam("X-Forwarded-For") String forwarded, @HeaderParam("User-Agent") String agent, @HeaderParam("Idempotency-Key") String requestKey,
                           @jakarta.ws.rs.core.Context io.vertx.core.http.HttpServerRequest connection) {
         // the order needs an account; the cookie names the buyer (no CSRF token: placing an order changes nothing of the account)
         var shopper = shoppers.authenticate(token, null, false).orElseThrow(() -> new dev.nortech.norpress.shared.domain.Unauthorized("Inicia sesión para comprar"));
@@ -56,8 +56,9 @@ public class CheckoutResource {
             buyer = new Buyer(profile.firstName(), profile.lastName(), shopper.email(), profile.phone(), profile.documentType(), profile.documentNumber(), profile.company(), false, a.street(), a.detail(), a.city(), a.state(), in.note());
             to = new Buyer.Destination(a.firstName(), a.lastName(), a.phone(), a.neighborhood(), a.instructions(), a.label().db());
         }
-        var placed = checkout.place(lines(in.lines()), buyer, to, in.coupon(), java.util.Optional.of(shopper), site.replaceAll("/+$", ""));
-        legal.accept(ACCEPTED, "checkout", placed.number(), shopper.accountId(), dev.nortech.norpress.shared.adapter.ClientAddress.of(connection, forwarded), agent);
+        var placed = checkout.place(lines(in.lines()), buyer, to, in.coupon(), java.util.Optional.of(shopper), site.replaceAll("/+$", ""), requestKey);
+        // a repeated try returns the order it already made (key null), whose acceptance is already recorded
+        if (placed.key() != null) legal.accept(ACCEPTED, "checkout", placed.number(), shopper.accountId(), dev.nortech.norpress.shared.adapter.ClientAddress.of(connection, forwarded), agent);
         return Response.status(201).entity(placed).header("Cache-Control", "no-store").build();
     }
 

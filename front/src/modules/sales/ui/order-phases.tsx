@@ -22,6 +22,7 @@ const when = (at: string | null | undefined) => at ? ` el ${dateTime(at)}` : ""
 function phaseText(phase: Phase, state: PhaseState, o: OrderDetail, s: Shipment | null): string {
   const pickup = o.deliveryMethod === "pickup"
   const units = o.lines.reduce((a, l) => a + l.quantity, 0)
+  if (o.stage === "cancelled" && phase === "pay" && o.unpaidExpiredAt && !o.paidAt) return "Se canceló porque no se pagó a tiempo. Si el cliente pagó por transferencia, regístralo aquí y el pedido vuelve a quedar activo."
   if (o.stage === "cancelled") return "El pedido se canceló; esta fase ya no aplica."
   switch (phase) {
     case "pay":
@@ -134,8 +135,8 @@ export function PayPhase({ order, canManage, onRegister }: { order: OrderDetail;
       <ul className="orders-tries">{attempt(last)}</ul>
       {older.length > 0 && <details className="orders-older mt-2"><summary>Ver {older.length === 1 ? "el intento anterior" : `${older.length} intentos anteriores`}</summary><ul className="orders-tries mt-2">{older.map(attempt)}</ul></details>}
     </Panel>}
-    {canManage && (order.status === "pending" || order.status === "on_hold") && <Panel icon={CreditCard} title="Registrar un pago a mano">
-      <form onSubmit={register} className="grid gap-4"><p className="text-sm text-stone-400">Para transferencias o pagos en la tienda. El pedido pasa a pagado y el cliente recibe el correo de confirmación.</p>
+    {canManage && (order.status === "pending" || order.status === "on_hold" || (order.status === "cancelled" && order.unpaidExpiredAt && !order.paidAt)) && <Panel icon={CreditCard} title="Registrar un pago a mano">
+      <form onSubmit={register} className="grid gap-4"><p className="text-sm text-stone-400">{order.status === "cancelled" ? "El pago llegó después del plazo: al registrarlo, el pedido se reactiva si sus unidades siguen disponibles y el cliente recibe el correo de confirmación." : "Para transferencias o pagos en la tienda. El pedido pasa a pagado y el cliente recibe el correo de confirmación."}</p>
         <div className="flex flex-wrap items-end gap-2">
           <label className="glass-label min-w-0 flex-1">Referencia del pago<input className="glass-field" value={reference} maxLength={120} onChange={e => setReference(e.target.value)} placeholder="Número de la transferencia o del recibo" /></label>
           <button className="glass-cta" disabled={paying || !reference.trim()}>{paying ? "Registrando…" : "Registrar pago"}</button>

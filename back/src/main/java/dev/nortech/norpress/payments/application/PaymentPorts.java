@@ -17,6 +17,8 @@ public final class PaymentPorts {
         Optional<Attempt> latest(UUID orderId);
         /** Tries at a gateway still waiting for an answer, started after `since`, on orders still waiting for payment. */
         java.util.List<Attempt> open(String gateway, java.time.Instant since, int limit);
+        /** Orders still waiting for payment whose latest try the gateway is processing, with a time to pay that ran out after `since`. */
+        java.util.Set<UUID> waiting(java.time.Instant since);
         /** True only for the call that moves the try to approved: the one that may mark the order as paid. */
         boolean approve(String reference, String externalId, String detail);
         /** Updates a try that is not approved; an approved one never goes back. */

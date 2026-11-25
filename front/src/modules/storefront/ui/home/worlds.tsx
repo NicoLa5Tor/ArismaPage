@@ -12,7 +12,7 @@ import { optimized } from "../../../shared/ui/optimized-image"
 // shows what it holds. Phones get a swipeable row of whole cards. Nothing here holds the scroll.
 export function Worlds({ categories }: { categories: CatalogCategory[] }) {
   const [active, setActive] = useState(0)
-  const [ref, shown] = useInView<HTMLUListElement>({ threshold: 0.2 })
+  const [ref, shown] = useInView<HTMLDivElement>({ threshold: 0.2 })
   return (
     <section id="mundos" className="worlds" aria-labelledby="mundos-titulo">
       <div className="worlds-head">
@@ -23,8 +23,8 @@ export function Worlds({ categories }: { categories: CatalogCategory[] }) {
         <Link href="/productos" className="link-arrow">Ver todo el catálogo <ArrowRight size={18} weight="bold" aria-hidden="true" /></Link>
         {categories.length > 1 && <p className="worlds-hint" aria-hidden="true"><HandSwipeRight size={20} weight="duotone" /> Desliza para ver las {categories.length} categorías</p>}
       </div>
-      <div className="worlds-viewport">
-        <ul ref={ref} className="worlds-track" data-shown={shown}>
+      <div ref={ref} className="worlds-viewport" data-shown={shown}>
+        <ul className="worlds-track">
           {categories.map((category, index) => {
             const meta = categoryMetaOf(category.slug, index)
             const Icon = categoryIcon(category.slug)

@@ -25,13 +25,20 @@ class OrderServiceTest {
         public List<ReducedLine> lockReducedLines(UUID id) { return lines.getOrDefault(id, List.of()).stream().filter(l -> !returned.contains(l.lineId())).toList(); }
         public void markReturned(UUID lineId) { returned.add(lineId); }
         public void markReduced(UUID lineId, int quantity) {}
+        final Set<UUID> expired = new HashSet<>();
+        public List<Line> lockLines(UUID id) { return lines.getOrDefault(id, List.of()).stream().map(l -> new Line(l.lineId(), l.productId(), "Producto", l.quantity())).toList(); }
+        public void markExpired(UUID id, boolean e) { if (e) expired.add(id); else expired.remove(id); }
+        public boolean revivable(UUID id) { return expired.contains(id) && orders.get(id).status() == OrderStatus.CANCELLED; }
+        public boolean test(UUID id) { return false; }
         public Map<String, Object> addNote(UUID id, String body, UUID actor) { return Map.of("body", body); }
     }
     static class FakeLedger implements StockLedger {
         final Map<UUID, Integer> returned = new HashMap<>();
         public void returnToStock(UUID productId, int quantity, UUID orderLineId, String reason, UUID actor) { returned.merge(productId, quantity, Integer::sum); }
         public void recordManualChange(UUID productId, Integer before, Integer after, String reason, UUID actor) {}
-        public int takeForSale(UUID productId, int quantity, UUID orderLineId, String reason) { return quantity; }
+        int shelf = 100; final Map<UUID, Integer> taken = new HashMap<>();
+        public boolean canTake(UUID productId, int quantity) { return shelf >= quantity; }
+        public int takeForSale(UUID productId, int quantity, UUID orderLineId, String reason) { taken.merge(productId, quantity, Integer::sum); return quantity; }
     }
     /** Collects fired events instead of notifying observers. */
     static class Events implements Event<OrderStatusChanged> {
@@ -106,5 +113,31 @@ class OrderServiceTest {
         var cancelled = order(OrderStatus.CANCELLED, 0);
         service.completeOnDelivery(cancelled, null);
         assertEquals(OrderStatus.CANCELLED, orders.orders.get(cancelled).status());
+    }
+
+    @Test void anExpiredOrderComesBackWhenItsUnitsAreThere() {
+        var id = order(OrderStatus.PENDING, 2);
+        assertTrue(service.expireUnpaid(id));
+        assertEquals(OrderStatus.CANCELLED, orders.orders.get(id).status());
+        assertEquals(2, ledger.returned.get(product));
+        assertNull(service.revive(id, "Pago tardío", null));
+        assertEquals(OrderStatus.PROCESSING, orders.orders.get(id).status());
+        assertEquals(2, ledger.taken.get(product));
+        assertFalse(orders.expired.contains(id), "once back it is no longer an expired order");
+        assertEquals(OrderStatus.CANCELLED, events.fired.getLast().from());
+    }
+    @Test void anExpiredOrderStaysCancelledWhenAUnitIsMissing() {
+        var id = order(OrderStatus.PENDING, 3);
+        service.expireUnpaid(id);
+        ledger.shelf = 1;
+        assertNotNull(service.revive(id, "Pago tardío", null));
+        assertEquals(OrderStatus.CANCELLED, orders.orders.get(id).status());
+        assertNull(ledger.taken.get(product), "nothing is taken when one line cannot be served");
+    }
+    @Test void onlyOrdersThatRanOutOfTimeComeBack() {
+        var cancelledByHand = order(OrderStatus.CANCELLED, 0);
+        assertNotNull(service.revive(cancelledByHand, "", null));
+        var paid = order(OrderStatus.PROCESSING, 1);
+        assertFalse(service.expireUnpaid(paid), "a paid order never expires");
     }
 }

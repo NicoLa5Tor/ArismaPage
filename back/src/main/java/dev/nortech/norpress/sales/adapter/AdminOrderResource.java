@@ -61,6 +61,11 @@ public class AdminOrderResource {
         return get(id);
     }
 
+    /** Brings back an order cancelled for lack of payment whose money arrived later, once its units are there. */
+    @Requires(Permission.ORDERS_MANAGE) @POST @Path("/{id}/revive") public Map<String,Object> revive(@PathParam("id") UUID id) {
+        afterSale.revive(id,actor());
+        return get(id);
+    }
     @GET public OrderQueries.OrderList list(@QueryParam("status") String status,@QueryParam("from") String from,@QueryParam("to") String to,@QueryParam("q") @DefaultValue("") String q,@QueryParam("stage") String stage,
                                             @QueryParam("historial") boolean history,@QueryParam("limit") @DefaultValue("25") int limit,@QueryParam("offset") @DefaultValue("0") int offset) {
         return queries.list(new OrderQueries.Filter(OrderStatus.parse(status),DateWindow.optional(from,to),q,stage,history),new Page.Request(limit,offset));

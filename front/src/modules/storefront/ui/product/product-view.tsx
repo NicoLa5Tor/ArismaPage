@@ -1,30 +1,53 @@
 import Link from "next/link"
 import { ArrowRight, Cake, CaretRight, CreditCard, Hash, MapPin, Package, ShieldCheck } from "@phosphor-icons/react/ssr"
 import { discountPercent } from "../../domain/catalog"
-import { manifesto, purchaseFactsFor } from "../../domain/home"
+import { purchaseFactsFor } from "../../domain/home"
 import type { StoreProfile } from "../../../shared/domain/store-profile"
 import { type ProductDetail, ageLabel } from "../../domain/product"
 import { ProductCard } from "../catalog/product-card"
-import { SiteFooter } from "../home/final-cta"
 import { Reveal } from "../reveal"
 import { StoreHeader } from "../store-header"
 import { BuyPanel } from "./buy-panel"
 import { ProductGallery } from "./product-gallery"
+import { ProductInfo, type ProductPanel } from "./product-info"
 import { Stars } from "./stars"
 
 const factIcons = { shipping: Package, payment: CreditCard, warranty: ShieldCheck, store: MapPin } as const
 
 /**
- * The product page. Sections the administrator hid do not arrive from the store, so each block renders only when it
- * is both shown and has something to say. `children` is where the reviews and questions go.
+ * The product page: photos, price and buying first; below, everything else in one box of tabs (folding rows on a
+ * phone), so the page does not open with every detail at once. Sections the administrator hid do not arrive from the
+ * store, so each tab is there only when it is both shown and has something to say. `reviews` and `questions` are the
+ * conversation panels, rendered by the page.
  */
-/** shipsFrom is the store's city, from its profile; empty, the line only says it ships to all of Colombia. */
-export function ProductView({ detail, profile, children }: { detail: ProductDetail; profile: StoreProfile; children?: React.ReactNode }) {
+export function ProductView({ detail, profile, reviews, questions }: { detail: ProductDetail; profile: StoreProfile; reviews?: React.ReactNode; questions?: React.ReactNode }) {
   const shipsFrom = profile.localCity
   const { product, sections } = detail
   const age = ageLabel(detail.ageMin, detail.ageMax)
   const discount = discountPercent(product)
   const hasSheet = detail.specs.length > 0 || Boolean(detail.sku) || Boolean(age) || detail.categories.length > 0
+  const panels: ProductPanel[] = []
+  if (detail.descriptionHtml) panels.push({ id: "descripcion", label: "Descripción", content: <div className="product-description" dangerouslySetInnerHTML={{ __html: detail.descriptionHtml }} /> })
+  if (hasSheet) panels.push({ id: "ficha", label: "Ficha", content: (
+    <dl className="product-sheet">
+      {detail.specs.map((spec) => <div key={spec.label}><dt>{spec.label}</dt><dd>{spec.value}</dd></div>)}
+      {age && <div><dt>Edad recomendada</dt><dd>{age}</dd></div>}
+      {detail.sku && <div><dt><Hash size={14} aria-hidden="true" /> Referencia</dt><dd>{detail.sku}</dd></div>}
+      {detail.categories.length > 0 && (
+        <div><dt>Categorías</dt><dd className="product-tags">{detail.categories.map((category) => <Link key={category.slug} href={`/productos?categoria=${encodeURIComponent(category.slug)}`}>{category.name}</Link>)}</dd></div>
+      )}
+    </dl>
+  ) })
+  if (sections.shipping) panels.push({ id: "envio", label: "Envío y pago", content: (
+    <ul className="product-facts">
+      {purchaseFactsFor(profile).map((fact) => {
+        const Icon = factIcons[fact.id]
+        return <li key={fact.id} data-tone={fact.tone}><span className="product-fact-icon squircle"><Icon size={20} weight="fill" aria-hidden="true" /></span><div><h3>{fact.title}</h3><p>{fact.text}</p></div></li>
+      })}
+    </ul>
+  ) })
+  if (sections.reviews && reviews) panels.push({ id: "opiniones", label: "Opiniones", count: detail.rating.count, content: reviews })
+  if (sections.questions && questions) panels.push({ id: "preguntas", label: "Preguntas", content: questions })
 
   return (
     <main id="contenido" className="storefront catalog product-page">
@@ -62,49 +85,8 @@ export function ProductView({ detail, profile, children }: { detail: ProductDeta
         </div>
       </div>
 
-      <Reveal as="section" className="product-tagline">
-        <p className="eyebrow">{manifesto.eyebrow}</p>
-        <p className="product-tagline-lines"><span>{manifesto.lines[0]}</span><span>{manifesto.lines[1]}</span></p>
-      </Reveal>
-
       <div className="product-body">
-        {(detail.descriptionHtml || hasSheet) && (
-          <div className="product-columns">
-            {detail.descriptionHtml && (
-              <Reveal as="section" className="product-block">
-                <h2>Descripción</h2>
-                <div className="product-description" dangerouslySetInnerHTML={{ __html: detail.descriptionHtml }} />
-              </Reveal>
-            )}
-            {hasSheet && (
-              <Reveal as="section" className="product-block">
-                <h2>Ficha del producto</h2>
-                <dl className="product-sheet">
-                  {detail.specs.map((spec) => <div key={spec.label}><dt>{spec.label}</dt><dd>{spec.value}</dd></div>)}
-                  {age && <div><dt>Edad recomendada</dt><dd>{age}</dd></div>}
-                  {detail.sku && <div><dt><Hash size={14} aria-hidden="true" /> Referencia</dt><dd>{detail.sku}</dd></div>}
-                  {detail.categories.length > 0 && (
-                    <div><dt>Categorías</dt><dd className="product-tags">{detail.categories.map((category) => <Link key={category.slug} href={`/productos?categoria=${encodeURIComponent(category.slug)}`}>{category.name}</Link>)}</dd></div>
-                  )}
-                </dl>
-              </Reveal>
-            )}
-          </div>
-        )}
-
-        {sections.shipping && (
-          <Reveal as="section" className="product-block">
-            <h2>Cómo lo recibes</h2>
-            <ul className="product-facts">
-              {purchaseFactsFor(profile).map((fact) => {
-                const Icon = factIcons[fact.id]
-                return <li key={fact.id} className="squircle" data-tone={fact.tone}><span className="product-fact-icon squircle"><Icon size={24} weight="fill" aria-hidden="true" /></span><h3>{fact.title}</h3><p>{fact.text}</p></li>
-              })}
-            </ul>
-          </Reveal>
-        )}
-
-        {children}
+        <ProductInfo panels={panels} label={`Detalles de ${product.title}`} />
 
         {detail.related.length > 0 && (
           <Reveal as="section" className="product-block">
@@ -117,7 +99,6 @@ export function ProductView({ detail, profile, children }: { detail: ProductDeta
         )}
       </div>
 
-      <SiteFooter />
     </main>
   )
 }
