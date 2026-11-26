@@ -75,14 +75,23 @@ export function ScrollWorld({ proof }: { proof?: string }) {
     const portrait = window.matchMedia("(orientation: portrait) and (max-width: 768px)").matches
     const src = portrait ? showcaseVideo.portraitSrc : window.matchMedia("(max-width: 768px)").matches ? showcaseVideo.mobileSrc : showcaseVideo.src
     if (portrait) video.poster = showcaseVideo.portraitPoster
-    fetch(src, { signal: controller.signal })
-      .then((response) => { if (!response.ok) throw new Error(String(response.status)); return response.blob() })
-      .then((blob) => {
-        objectUrl = URL.createObjectURL(blob)
-        video.src = objectUrl
-        video.addEventListener("loadeddata", () => { setStatus("ready"); seek() }, { once: true })
-      })
-      .catch((error: unknown) => { if ((error as Error).name !== "AbortError") { ctx.revert(); setStatus("static") } })
+    // The bytes are read into memory and wrapped as a Blob here: `response.blob()` needs the browser's blob storage,
+    // which refuses a video this size on a device short of disk space (Chrome then reports "Failed to fetch").
+    const download = (cache?: RequestCache) => fetch(src, { signal: controller.signal, cache })
+      .then((response) => { if (!response.ok) throw new Error(String(response.status)); return response.arrayBuffer() })
+      .then((bytes) => new Blob([bytes], { type: "video/mp4" }))
+    const play = (url: string) => {
+      video.addEventListener("loadeddata", () => { setStatus("ready"); seek() }, { once: true })
+      video.addEventListener("error", () => { ctx.revert(); setStatus("static") }, { once: true })
+      video.preload = "auto"
+      video.src = url
+    }
+    // A second try skips the browser cache (it can hold a broken copy); if both fail the video streams from its address,
+    // which scrubs less smoothly but still tells the story. Only a video that cannot load at all leaves the still image.
+    download()
+      .catch((error: unknown) => { if ((error as Error).name === "AbortError") throw error; return download("no-store") })
+      .then((blob) => { objectUrl = URL.createObjectURL(blob); play(objectUrl) })
+      .catch((error: unknown) => { if ((error as Error).name !== "AbortError") play(src) })
 
     return () => {
       controller.abort()

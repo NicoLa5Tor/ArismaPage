@@ -66,3 +66,22 @@
   .scroll-world.is-static .scroll-world-outro, .scroll-world.is-static .scroll-world-cover { display: none; }
 }
 
+
+/* Phones held upright: the story is the picture. The headline sits on the empty wall at the top, the button on the
+   table at the bottom, and the robot and the board stay visible in between. The closing line gets its own card so it
+   reads over the stars, the logo rises above the toys, and the story takes six screens instead of nine. */
+@layer components {
+  @media (width < 40rem) {
+    .scroll-world { height: 600vh; }
+    .scroll-world-hero { top: 4.5rem; bottom: 1rem; gap: 0.5rem; padding: 0 0.25rem; border-radius: 0; background: transparent; }
+    .scroll-world:not(.is-static) .scroll-world-hero { @apply backdrop-blur-none; }
+    .scroll-world.is-static .scroll-world-hero { @apply bottom-auto rounded-3xl bg-white/90 p-5; }
+    .scroll-world-hero .eyebrow { display: none; }
+    .scroll-world-hero h1 { @apply text-3xl; text-wrap: balance; text-shadow: 0 1px 12px rgb(255 255 255 / 0.9); }
+    .scroll-world-hero .lead { @apply text-sm text-neutral-800; text-wrap: pretty; text-shadow: 0 1px 12px rgb(255 255 255 / 0.9); }
+    .scroll-world-hero .actions { margin-top: auto; padding-top: 0; }
+    .scroll-world-hero .scroll-world-proof, .scroll-world-hero .scroll-world-status { @apply self-start rounded-full bg-white/90 px-3 py-2 text-xs; }
+    .scroll-world-finale { @apply top-20 rounded-3xl bg-white/85 p-4 text-3xl; text-shadow: none; }
+    .scroll-world-outro { align-items: flex-start; padding-top: 22svh; }
+  }
+}
