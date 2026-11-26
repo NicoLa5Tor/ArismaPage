@@ -13,7 +13,8 @@
 
   .scroll-world { position: relative; height: 900vh; }
   .scroll-world.is-static { height: auto; }
-  .scroll-world-stage { @apply sticky top-0 h-svh w-full overflow-hidden; }
+  /* follows the visible screen: on phones it grows when the browser bar hides, so the next section never peeks in */
+  .scroll-world-stage { @apply sticky top-0 h-svh w-full overflow-hidden; height: 100dvh; }
   .scroll-world.is-static .scroll-world-stage { @apply relative; }
   .scroll-world-video { @apply absolute inset-0 h-full w-full object-cover; }
 
