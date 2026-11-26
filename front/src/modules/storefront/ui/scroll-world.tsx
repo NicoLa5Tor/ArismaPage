@@ -74,7 +74,6 @@ export function ScrollWorld({ proof }: { proof?: string }) {
     // Every version is all keyframes, so scrubbing stays instant.
     const portrait = window.matchMedia("(orientation: portrait) and (max-width: 768px)").matches
     const src = portrait ? showcaseVideo.portraitSrc : window.matchMedia("(max-width: 768px)").matches ? showcaseVideo.mobileSrc : showcaseVideo.src
-    if (portrait) video.poster = showcaseVideo.portraitPoster
     // The bytes are read into memory and wrapped as a Blob here: `response.blob()` needs the browser's blob storage,
     // which refuses a video this size on a device short of disk space (Chrome then reports "Failed to fetch").
     const download = (cache?: RequestCache) => fetch(src, { signal: controller.signal, cache })
@@ -107,7 +106,7 @@ export function ScrollWorld({ proof }: { proof?: string }) {
     <section ref={sectionRef} className={`scroll-world ${isStatic ? "is-static" : ""}`} aria-label="Historia de los juguetes Arisma">
       <div className="scroll-world-stage">
         <div className="scroll-world-camera">
-        <video ref={videoRef} className="scroll-world-video" poster={showcaseVideo.poster} muted playsInline preload="none" aria-hidden="true" tabIndex={-1} />
+        <video ref={videoRef} className="scroll-world-video" muted playsInline preload="none" aria-hidden="true" tabIndex={-1} />
         {!isStatic && (
           <div className="scroll-world-outro">
             <div className="scroll-world-logo-wrap">

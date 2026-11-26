@@ -18,6 +18,12 @@
   .scroll-world-stage { @apply sticky top-0 w-full overflow-hidden; height: 100vh; height: 100lvh; --bar: calc(100lvh - 100svh); }
   .scroll-world.is-static .scroll-world-stage { @apply relative; }
   .scroll-world-video { @apply absolute inset-0 h-full w-full object-cover; }
+  /* The still shown until the video plays is chosen by CSS with the same rule the video uses (scroll-world.tsx), so a
+     phone held upright never flashes the wide desktop frame first. */
+  .scroll-world-video { background: url('/scroll-world/historia-poster.webp') center / cover no-repeat; }
+  @media (orientation: portrait) and (max-width: 768px) {
+    .scroll-world-video { background-image: url('/scroll-world/historia-vertical-poster.webp'); }
+  }
 
   .scroll-world-hero { @apply absolute left-4 right-4 top-24 z-10 flex max-w-lg flex-col gap-4 rounded-3xl bg-white/90 p-8 backdrop-blur sm:left-8 sm:top-1/2 sm:-translate-y-1/2 sm:p-12; transition: opacity 600ms var(--ease-out), translate 600ms var(--ease-out); }
   .scroll-world-hero h1 { @apply text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl; }
