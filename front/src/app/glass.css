@@ -669,8 +669,9 @@
 .orders-ship-steps li{display:flex;align-items:flex-start;gap:8px;border-radius:14px;padding:12px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.65)}
 .orders-ship-steps li[data-done]{color:#fff;background:rgba(40,150,100,.14)}
 .orders-ship-steps li[data-done] .glass-step-dot{background:rgba(40,150,100,.6)}
-/* Right column: the cards keep their height and the column scrolls when they do not fit (they used to shrink and overlap) */
-.glass-right{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+/* Right column: the cards keep their height and the column scrolls when they do not fit (they used to shrink and overlap).
+   Only in the wide layout: below it the column is part of the page and must not catch the finger. */
+@media(min-width:1100px){.glass-right{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}}
 .glass-right::-webkit-scrollbar{display:none}
 .glass-right>.glass-widget{flex-shrink:0}
 .glass-right>.glass-widget-dark{flex:1 0 auto}
@@ -721,3 +722,7 @@
 .tracking-account-numbers p{display:grid;gap:2px;border-radius:14px;padding:10px 12px;background:rgba(255,255,255,.05)}
 .tracking-account-numbers strong{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
 .tracking-account-numbers span{font-size:12px;color:rgba(255,255,255,.65)}
+
+/* Below the wide layout the page itself scrolls. A box that scrolls on its own (a table, a list, a column) lets the
+   gesture pass on to the page when it reaches its end, so the page never gets stuck under the finger. */
+@media(max-width:1099px){.glass-stage *{overscroll-behavior:auto!important}}
