@@ -10,7 +10,7 @@ export interface ShowcaseStop {
   to: number
 }
 
-export const showcaseVideo = { src: "/scroll-world/historia-desktop.mp4?v=8", mobileSrc: "/scroll-world/historia-movil.mp4?v=3", portraitSrc: "/scroll-world/historia-vertical.mp4?v=3", poster: "/scroll-world/historia-poster.webp", portraitPoster: "/scroll-world/historia-vertical-poster.webp", duration: 23.04 }
+export const showcaseVideo = { src: "/scroll-world/historia-desktop.mp4?v=8", mobileSrc: "/scroll-world/historia-movil.mp4?v=3", portraitSrc: "/scroll-world/historia-vertical.mp4?v=4", poster: "/scroll-world/historia-poster.webp", portraitPoster: "/scroll-world/historia-vertical-poster.webp", duration: 23.04 }
 
 export const heroUntil = 1.2
 
