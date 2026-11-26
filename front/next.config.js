@@ -16,6 +16,8 @@ module.exports = {
   },
   images: {
     formats: ["image/webp"],
+    // photos are shown sharp: 90 instead of the default 75, which left visible blocks on product photos
+    qualities: [90],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [{ protocol: "https", hostname: "arisma.com.co", pathname: "/**" }],
   },

@@ -18,7 +18,7 @@ const optimizable = (src: string) => {
  * `src`, `srcSet` and `sizes` for an <img>. `sizes` says how wide the image is shown (as in the CSS); `width` is the widest
  * it is ever drawn, in CSS pixels, so the list of candidates stops there.
  */
-export function optimized(src: string, { sizes, width, quality = 75 }: { sizes: string; width: number; quality?: number }): { src: string; srcSet?: string; sizes?: string } {
+export function optimized(src: string, { sizes, width, quality = 90 }: { sizes: string; width: number; quality?: number }): { src: string; srcSet?: string; sizes?: string } {
   if (!src || !optimizable(src)) return { src }
   const { props } = getImageProps({ src, alt: "", width, height: width, sizes, quality })
   return { src: props.src, srcSet: props.srcSet, sizes: props.sizes }
